@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kosh</string>
+    <string name="widget_name">Kosh · Quick add</string>
+    <string name="widget_description">Add an expense in two taps and see this month\'s spending</string>
+</resources>

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "238126258465",
+    "project_id": "kosh-finance-btq93",
+    "storage_bucket": "kosh-finance-btq93.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238126258465:android:5a8a903e90edbb81474660",
+        "android_client_info": {
+          "package_name": "com.neuralroots.kosh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "238126258465-gsjv0goqf3gk0akd1p6np9o9s0jkn6cv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neuralroots.kosh",
+            "certificate_hash": "bc95f88a5bae2aa8a68f629ae219ac5fe841ffd1"
+          }
+        },
+        {
+          "client_id": "238126258465-dm2j4jrfmp60u6cop51kf8vlgovifsfp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNWk5mv88_3LhstCkD1MNeDl38anzAWeI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "238126258465-dm2j4jrfmp60u6cop51kf8vlgovifsfp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
