@@ -1,5 +1,6 @@
 package com.neuralroots.kosh.ui.screens.reports
 
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -121,13 +122,14 @@ fun ReportsScreen(nav: NavController) {
                         StatPill("Saved", Money.compact(saved), if (saved >= 0) c.income else c.expense, Modifier.weight(1f))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatPill("Savings rate", if (s.income > 0) "$rate%" else "—", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                        StatPill("Avg / day", Money.compact(s.expense / days.coerceAtLeast(1)), c.transfer, Modifier.weight(1f))
+                        StatPill("Saved %", if (s.income > 0) "$rate%" else "—", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                        StatPill("Per day", Money.compact(s.expense / days.coerceAtLeast(1)), c.transfer, Modifier.weight(1f))
                         StatPill("Largest", largest?.let { Money.compact(it.txn.amount) } ?: "—", c.warning, Modifier.weight(1f))
                     }
                     if (largest != null) Text(
                         "Largest expense: ${largest.txn.payee.ifBlank { largest.categoryName ?: "Expense" }} on ${Dates.formatDayShort(largest.txn.date)}",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -145,8 +147,8 @@ fun ReportsScreen(nav: NavController) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         DonutChart(s.categories.map { ChartSlice(it.total.toFloat(), Color(it.color)) }, Modifier.size(180.dp)) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Total", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(Money.compact(s.expense), style = MaterialTheme.typography.titleLarge)
+                                Text("TOTAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                com.neuralroots.kosh.ui.components.FitText(Money.compact(s.expense), style = MaterialTheme.typography.titleLarge, modifier = Modifier.widthIn(max = 120.dp))
                             }
                         }
                     }
@@ -209,7 +211,8 @@ fun ReportsScreen(nav: NavController) {
                                 Text(name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text("$n payment${if (n > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Text(Money.format(amt), style = MaterialTheme.typography.titleSmall)
+                            Spacer(Modifier.width(8.dp))
+                            com.neuralroots.kosh.ui.components.FitText(Money.format(amt), style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(max = 130.dp))
                         }
                     }
                 }
@@ -226,10 +229,11 @@ private fun CategoryLine(cat: CategoryTotal, total: Long) {
             EmojiBubble(cat.emoji, Color(cat.color), size = 36.dp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(cat.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Text("${cat.total * 100 / total}% of spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(cat.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${cat.total * 100 / total}% of spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(Money.format(cat.total), style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.width(8.dp))
+            com.neuralroots.kosh.ui.components.FitText(Money.format(cat.total), style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(max = 130.dp))
         }
         if (cat.budget > 0) {
             val frac = cat.total.toFloat() / cat.budget
@@ -243,7 +247,7 @@ private fun CategoryLine(cat: CategoryTotal, total: Long) {
             Text(
                 if (frac > 1f) "Over budget by ${Money.format(cat.total - cat.budget)}"
                 else "${Money.format(cat.budget - cat.total)} left of ${Money.format(cat.budget)}",
-                style = MaterialTheme.typography.labelSmall, color = col, modifier = Modifier.padding(top = 2.dp),
+                style = MaterialTheme.typography.bodySmall, color = col, modifier = Modifier.padding(top = 2.dp), maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
     }

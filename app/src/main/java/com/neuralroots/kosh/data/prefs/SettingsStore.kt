@@ -16,7 +16,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 data class AppSettings(
     val currencyCode: String = "INR",
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.DARK,
     val dynamicColor: Boolean = false,
     /** Google Apps Script Web App URL (…/exec). Empty = sync disabled. */
     val sheetUrl: String = "",
@@ -42,6 +42,16 @@ data class AppSettings(
     /** Last successful upload to the cloud (ms). */
     val lastCloudPush: Long = 0,
     val cloudError: String = "",
+    /** Overall monthly spending budget in minor units; 0 = not set. */
+    val monthlyBudget: Long = 0,
+    val budgetAlerts: Boolean = true,
+    /** Read bank/UPI SMS and suggest transactions. */
+    val smsDetect: Boolean = true,
+    /** Record detected transactions automatically (true) or wait for review (false). */
+    val smsAutoAdd: Boolean = true,
+    /** Evening "did you log today's spending?" reminder. */
+    val dailyLogReminder: Boolean = false,
+    val dailyLogHour: Int = 21,
 ) {
     val syncConfigured: Boolean get() = sheetUrl.startsWith("https://")
 }
@@ -70,6 +80,12 @@ class SettingsStore(private val context: Context) {
         val lastCloudPull = longPreferencesKey("last_cloud_pull")
         val lastCloudPush = longPreferencesKey("last_cloud_push")
         val cloudError = stringPreferencesKey("cloud_error")
+        val monthlyBudget = longPreferencesKey("monthly_budget")
+        val budgetAlerts = booleanPreferencesKey("budget_alerts")
+        val smsDetect = booleanPreferencesKey("sms_detect")
+        val smsAutoAdd = booleanPreferencesKey("sms_auto_add")
+        val dailyLog = booleanPreferencesKey("daily_log")
+        val dailyLogHour = intPreferencesKey("daily_log_hour")
     }
 
     val flow: Flow<AppSettings> = context.dataStore.data.map { p -> p.toSettings() }
@@ -78,7 +94,7 @@ class SettingsStore(private val context: Context) {
 
     private fun Preferences.toSettings() = AppSettings(
         currencyCode = this[K.currency] ?: "INR",
-        themeMode = this[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+        themeMode = this[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK,
         dynamicColor = this[K.dynamic] ?: false,
         sheetUrl = this[K.sheetUrl] ?: "",
         sheetToken = this[K.sheetToken] ?: "",
@@ -97,6 +113,12 @@ class SettingsStore(private val context: Context) {
         lastCloudPull = this[K.lastCloudPull] ?: 0,
         lastCloudPush = this[K.lastCloudPush] ?: 0,
         cloudError = this[K.cloudError] ?: "",
+        monthlyBudget = this[K.monthlyBudget] ?: 0,
+        budgetAlerts = this[K.budgetAlerts] ?: true,
+        smsDetect = this[K.smsDetect] ?: true,
+        smsAutoAdd = this[K.smsAutoAdd] ?: true,
+        dailyLogReminder = this[K.dailyLog] ?: false,
+        dailyLogHour = this[K.dailyLogHour] ?: 21,
     )
 
     suspend fun setCurrency(code: String) = context.dataStore.edit { it[K.currency] = code }
@@ -128,4 +150,9 @@ class SettingsStore(private val context: Context) {
     suspend fun resetCloud() = context.dataStore.edit {
         it[K.cloudUid] = ""; it[K.lastCloudPull] = 0; it[K.lastCloudPush] = 0; it[K.cloudError] = ""
     }
+    suspend fun setMonthlyBudget(v: Long) = context.dataStore.edit { it[K.monthlyBudget] = v }
+    suspend fun setBudgetAlerts(on: Boolean) = context.dataStore.edit { it[K.budgetAlerts] = on }
+    suspend fun setSmsDetect(on: Boolean) = context.dataStore.edit { it[K.smsDetect] = on }
+    suspend fun setSmsAutoAdd(on: Boolean) = context.dataStore.edit { it[K.smsAutoAdd] = on }
+    suspend fun setDailyLog(on: Boolean, hour: Int) = context.dataStore.edit { it[K.dailyLog] = on; it[K.dailyLogHour] = hour }
 }

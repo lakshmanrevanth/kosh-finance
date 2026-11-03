@@ -1,5 +1,6 @@
 package com.neuralroots.kosh.ui.screens.more
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Sms
+import com.neuralroots.kosh.util.Money
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronRight
@@ -53,6 +58,7 @@ import kotlinx.coroutines.flow.stateIn
 class MoreViewModel(c: AppContainer) : ViewModel() {
     val settings = c.settings.flow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
     val pending = c.repo.observePendingSync().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val detected = c.repo.observePendingDetectedCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 }
 
 private fun syncSubtitle(s: AppSettings, pending: Int): String = when {
@@ -68,6 +74,7 @@ fun MoreScreen(nav: NavController) {
     val vm = koshViewModel { MoreViewModel(it) }
     val s by vm.settings.collectAsStateWithLifecycle()
     val pending by vm.pending.collectAsStateWithLifecycle()
+    val detected by vm.detected.collectAsStateWithLifecycle()
     val k = KoshTheme.colors
 
     Scaffold(topBar = { KoshTopBar("More") }, containerColor = MaterialTheme.colorScheme.background) { pad ->
@@ -90,32 +97,46 @@ fun MoreScreen(nav: NavController) {
                 )
             }
             item {
+                com.neuralroots.kosh.ui.components.SectionHeader("Your money")
                 Group(
                     listOf(
                         Entry(Icons.Filled.AccountBalance, "Accounts", "Banks, cash, cards & wallets", MaterialTheme.colorScheme.primary) { nav.navigate(Routes.ACCOUNTS) },
-                        Entry(Icons.Filled.Category, "Categories", "Emoji, colours and monthly budgets", k.warning) { nav.navigate(Routes.CATEGORIES) },
-                        Entry(Icons.Filled.PieChart, "Reports", "Trends, budgets and top payees", k.transfer) { nav.navigate(Routes.REPORTS) },
+                        Entry(
+                            Icons.Filled.Savings, "Budget",
+                            if (s.monthlyBudget > 0) "${Money.format(s.monthlyBudget)} a month · category limits" else "Set a monthly budget and category limits",
+                            k.income,
+                        ) { nav.navigate(Routes.BUDGET) },
+                        Entry(Icons.Filled.Autorenew, "Recurring & bills", "Rent, subscriptions, SIPs, salary", k.warning) { nav.navigate(Routes.RECURRING) },
+                        Entry(Icons.Filled.PieChart, "Reports", "Trends and top payees", k.transfer) { nav.navigate(Routes.REPORTS) },
+                        Entry(Icons.Filled.Category, "Categories", "Names, emoji and colours", k.loan) { nav.navigate(Routes.CATEGORIES) },
                     ),
                 )
             }
             item {
+                com.neuralroots.kosh.ui.components.SectionHeader("Automation & data")
                 Group(
                     listOf(
+                        Entry(
+                            Icons.Filled.Sms, "Detected from SMS",
+                            if (detected > 0) "$detected waiting for review" else if (s.smsDetect) "All caught up" else "Off · turn on in Settings",
+                            k.transfer,
+                        ) { nav.navigate(Routes.SMS_INBOX) },
                         Entry(Icons.Filled.CloudSync, "Google Sheets sync", syncSubtitle(s, pending), k.income) { nav.navigate(Routes.SHEETS_SYNC) },
                         Entry(Icons.Filled.FileDownload, "Export to Excel", "Download an .xlsx of your data", k.loan) { nav.navigate(Routes.EXPORT) },
                     ),
                 )
             }
             item {
+                com.neuralroots.kosh.ui.components.SectionHeader("App")
                 Group(
                     listOf(
-                        Entry(Icons.Filled.Settings, "Settings", "Theme, currency, app lock, reminders", MaterialTheme.colorScheme.onSurfaceVariant) { nav.navigate(Routes.SETTINGS) },
+                        Entry(Icons.Filled.Settings, "Settings", "Theme, currency, app lock, notifications", MaterialTheme.colorScheme.onSurfaceVariant) { nav.navigate(Routes.SETTINGS) },
                     ),
                 )
             }
             item {
                 Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Kosh v1.0.0", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Kosh v1.1.0", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "Your money, tracked on your phone and safely backed up to your account.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -143,8 +164,8 @@ private fun Group(entries: List<Entry>) {
                 IconBubble(e.icon, e.color, size = 40.dp)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(e.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                    Text(e.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(e.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(e.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }

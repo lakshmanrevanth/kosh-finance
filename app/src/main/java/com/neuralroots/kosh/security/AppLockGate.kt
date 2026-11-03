@@ -1,5 +1,7 @@
 package com.neuralroots.kosh.security
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -97,9 +99,9 @@ private fun LockScreen(onUnlock: () -> Unit) {
                 Modifier.size(88.dp).clip(RoundedCornerShape(28.dp))
                     .background(Brush.linearGradient(listOf(KoshTheme.colors.heroStart, KoshTheme.colors.heroEnd))),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Lock, null, tint = Color.White, modifier = Modifier.size(40.dp)) }
+            ) { Icon(Icons.Filled.Lock, null, tint = HeroText, modifier = Modifier.size(40.dp)) }
             Spacer(Modifier.height(12.dp))
-            Text("Kosh is locked", style = MaterialTheme.typography.headlineSmall)
+            Text("Kosh is locked", style = MaterialTheme.typography.headlineSmall, maxLines = 1)
             Text(
                 "Your finances stay private.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -109,7 +111,7 @@ private fun LockScreen(onUnlock: () -> Unit) {
             Button(onClick = onUnlock, modifier = Modifier.padding(horizontal = 32.dp)) {
                 Icon(Icons.Filled.Fingerprint, null)
                 Spacer(Modifier.size(8.dp))
-                Text("Unlock")
+                Text("Unlock", maxLines = 1)
             }
         }
     }

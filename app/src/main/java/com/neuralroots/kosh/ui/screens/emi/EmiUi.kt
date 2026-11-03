@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.emi
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +55,7 @@ import com.neuralroots.kosh.util.Money
 @Composable
 fun HeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val c = KoshTheme.colors
-    CompositionLocalProvider(LocalContentColor provides Color.White) {
+    CompositionLocalProvider(LocalContentColor provides HeroText) {
         Column(
             modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
                 .background(Brush.linearGradient(listOf(c.heroStart, c.heroEnd)))
@@ -66,9 +68,9 @@ fun HeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() 
 @Composable
 fun HeroStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.75f))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = HeroText.copy(alpha = 0.75f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         Spacer(Modifier.height(2.dp))
-        Text(value, style = MaterialTheme.typography.titleMedium, color = Color.White, maxLines = 1)
+        com.neuralroots.kosh.ui.components.FitText(value, style = MaterialTheme.typography.titleMedium, color = HeroText)
     }
 }
 
@@ -82,6 +84,7 @@ fun StatusChip(text: String, color: Color, modifier: Modifier = Modifier) {
         color = color,
         fontWeight = FontWeight.SemiBold,
         maxLines = 1,
+        softWrap = false,
     )
 }
 
@@ -139,10 +142,10 @@ fun PaymentDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { Text(title, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 MoneyField("Amount", amount, { amount = it }, isError = amount.isNotEmpty() && (parsed == null || parsed <= 0))
                 DateField("Date", date, { date = it })
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -161,7 +164,7 @@ fun PaymentDialog(
             TextButton(enabled = valid, onClick = {
                 onConfirm(parsed!!, date, if (record) account?.id else null, note.trim())
                 onDismiss()
-            }) { Text(confirmLabel) }
+            }) { Text(confirmLabel, maxLines = 1, softWrap = false) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

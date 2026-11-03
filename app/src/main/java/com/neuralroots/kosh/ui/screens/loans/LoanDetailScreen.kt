@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.loans
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -124,7 +127,7 @@ fun LoanDetailScreen(nav: NavController, id: Long) {
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Edit") }, onClick = { menu = false; nav.navigate(Routes.loanEdit(id)) })
                     if (s != null) {
-                        DropdownMenuItem(text = { Text("View ${s.personName}") }, onClick = { menu = false; nav.navigate(Routes.personDetail(s.loan.personId)) })
+                        DropdownMenuItem(text = { Text("View ${s.personName}", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }, onClick = { menu = false; nav.navigate(Routes.personDetail(s.loan.personId)) })
                         DropdownMenuItem(
                             text = { Text(if (s.loan.status == LoanStatus.SETTLED) "Reopen" else "Mark as settled") },
                             onClick = { menu = false; vm.setSettled(s.loan.status != LoanStatus.SETTLED) },
@@ -150,31 +153,28 @@ fun LoanDetailScreen(nav: NavController, id: Long) {
             if (!settled) item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(onClick = { entryKind = LoanEntryKind.REPAYMENT }, modifier = Modifier.weight(1f).height(50.dp)) {
-                        Text(if (lent) "Record repayment" else "Repay")
+                        Text(if (lent) "Repayment" else "Repay", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
-                    FilledTonalButton(onClick = { entryKind = LoanEntryKind.TOPUP }, modifier = Modifier.weight(1f).height(50.dp)) {
+                    FilledTonalButton(
+                        onClick = { entryKind = LoanEntryKind.TOPUP }, modifier = Modifier.weight(1f).height(50.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                    ) {
                         Icon(Icons.Filled.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
-                        Text(if (lent) "Lend more" else "Borrow more")
+                        Text(if (lent) "Lend more" else "Borrow more", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
             }
             if (!settled && lent && s.outstanding > 0) item {
                 val text = "Hi ${s.personName}, a friendly reminder that ${Money.format(s.outstanding)} is pending. — sent from Kosh"
-                val phone = person?.phone.orEmpty()
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = { shareText(ctx, text) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.AutoMirrored.Filled.Send, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Send reminder")
-                    }
-                    if (phone.isNotBlank()) {
-                        OutlinedButton(onClick = { whatsApp(ctx, phone, text) }, modifier = Modifier.weight(1f)) { Text("WhatsApp") }
-                        IconButton(onClick = { sms(ctx, phone, text) }) { Icon(Icons.Filled.Sms, "SMS") }
-                    }
+                OutlinedButton(onClick = { shareText(ctx, text) }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.Send, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+                    Text("Send reminder", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
             if (s.loan.note.isNotBlank()) item {
                 KoshCard(Modifier.fillMaxWidth()) {
                     Text("Note", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(s.loan.note, style = MaterialTheme.typography.bodyMedium)
+                    Text(s.loan.note, style = MaterialTheme.typography.bodyMedium, maxLines = 6, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
             item { SectionHeader("History") }
@@ -257,32 +257,35 @@ private fun LoanHero(s: LoanWithStats) {
                 lent -> "${s.personName} owes you"
                 else -> "You owe ${s.personName}"
             },
-            style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.85f),
+            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         Spacer(Modifier.height(4.dp))
-        Text(Money.format(s.outstanding), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        com.neuralroots.kosh.ui.components.FitText(Money.format(s.outstanding), style = MaterialTheme.typography.headlineLarge, color = HeroText, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(14.dp))
         val frac = if (s.totalLent > 0) s.repaid.toFloat() / s.totalLent else 0f
-        RoundedProgress(if (settled) 1f else frac, color = Color.White)
+        RoundedProgress(if (settled) 1f else frac, color = HeroText)
         Spacer(Modifier.height(6.dp))
         Text(
             "${Money.format(s.repaid)} repaid of ${Money.format(s.totalLent)}",
-            style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.bodySmall, color = HeroText.copy(alpha = 0.85f),
+            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         Spacer(Modifier.height(14.dp))
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (s.loan.annualRate > 0) {
                 val interest = EmiMath.simpleInterest(s.outstanding, s.loan.annualRate, s.loan.startDate, System.currentTimeMillis())
-                HeroStat("Interest @ ${s.loan.annualRate}%", Money.format(interest), Modifier.weight(1f))
+                HeroStat("Int. @ ${s.loan.annualRate}%", Money.format(interest), Modifier.weight(1f))
             }
             HeroStat("Since", Dates.formatDay(s.loan.startDate), Modifier.weight(1f))
             val due = s.loan.dueDate
             if (due != null) Column(Modifier.weight(1f)) {
-                Text("Due", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.75f))
-                Text(Dates.formatDay(due), style = MaterialTheme.typography.titleMedium)
+                Text("Due", style = MaterialTheme.typography.labelMedium, color = HeroText.copy(alpha = 0.75f), maxLines = 1)
+                com.neuralroots.kosh.ui.components.FitText(Dates.formatDay(due), style = MaterialTheme.typography.titleMedium, color = HeroText)
                 if (!settled) Text(
                     Dates.relativeDue(due), style = MaterialTheme.typography.labelSmall,
-                    color = if (Dates.daysFromToday(due) < 0) Color(0xFFFFD1CC) else Color.White.copy(alpha = 0.85f),
+                    color = if (Dates.daysFromToday(due) < 0) Color(0xFFFFD1CC) else HeroText.copy(alpha = 0.85f),
+                    maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }
@@ -302,13 +305,14 @@ private fun TimelineRow(
         IconBubble(icon, color, size = 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
-        Text(amount, style = MaterialTheme.typography.titleSmall, color = color)
+        Spacer(Modifier.width(8.dp))
+        com.neuralroots.kosh.ui.components.FitText(amount, style = MaterialTheme.typography.titleSmall, color = color, modifier = Modifier.widthIn(max = 120.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         if (onDelete != null) IconButton(onClick = onDelete) {
             Icon(Icons.Filled.DeleteOutline, "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else Spacer(Modifier.width(48.dp))
+        } else Spacer(Modifier.width(12.dp))
     }
 }
 
@@ -317,15 +321,4 @@ private fun shareText(ctx: Context, text: String) {
     ctx.startActivity(Intent.createChooser(i, "Send reminder"))
 }
 
-private fun sms(ctx: Context, phone: String, text: String) {
-    val i = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + phone.filter { it.isDigit() || it == '+' }))
-        .putExtra("sms_body", text)
-    try { ctx.startActivity(i) } catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No SMS app found", Toast.LENGTH_SHORT).show() }
-}
 
-private fun whatsApp(ctx: Context, phone: String, text: String) {
-    var digits = phone.filter { it.isDigit() }
-    if (digits.length == 10 && Money.currencyCode == "INR") digits = "91$digits"
-    val i = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits?text=" + Uri.encode(text)))
-    try { ctx.startActivity(i) } catch (_: ActivityNotFoundException) { shareText(ctx, text) }
-}

@@ -49,5 +49,12 @@ object Routes {
     const val EXPORT = "settings/export"
     const val PROFILE = "profile"
 
+    const val RECURRING = "recurring"
+    const val RECURRING_EDIT = "recurring/edit?id={id}&fromTxn={fromTxn}"
+    /** New/edit recurring rule; [fromTxn] pre-fills it from an existing transaction. */
+    fun recurringEdit(id: Long? = null, fromTxn: Long? = null) = "recurring/edit?id=${id ?: -1}&fromTxn=${fromTxn ?: -1}"
+    const val SMS_INBOX = "inbox"
+    const val BUDGET = "budget"
+
     val topLevel = setOf(HOME, TRANSACTIONS, EMIS, LOANS, MORE)
 }

@@ -20,6 +20,8 @@ import com.neuralroots.kosh.cloud.CloudScheduler
 import com.neuralroots.kosh.security.AppLockGate
 import com.neuralroots.kosh.ui.screens.auth.AuthGate
 import com.neuralroots.kosh.ui.nav.KoshNavHost
+import com.neuralroots.kosh.ui.screens.splash.KoshSplash
+import androidx.compose.foundation.layout.fillMaxSize
 import com.neuralroots.kosh.ui.theme.KoshTheme
 
 /**
@@ -33,6 +35,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) pendingRoute = intent?.getStringExtra(EXTRA_ROUTE)
+        else showSplash = false // rotation / recreation: don't replay the logo
 
         setContent {
             val settings by container.settings.flow.collectAsStateWithLifecycle(initialValue = AppSettings(seeded = true))
@@ -41,17 +44,31 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(Unit) {
                     if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                AppLockGate(enabled = settings.appLock) {
-                    AuthGate {
-                        KoshNavHost(startRoute = pendingRoute, onStartRouteConsumed = { pendingRoute = null })
+                androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
+                    AppLockGate(enabled = settings.appLock) {
+                        AuthGate {
+                            KoshNavHost(startRoute = pendingRoute, onStartRouteConsumed = { pendingRoute = null })
+                        }
                     }
+                    // Opening logo animation, drawn over the app while it loads underneath.
+                    if (showSplash) KoshSplash(onFinished = { showSplash = false })
                 }
             }
         }
     }
 
+    /** Plays on launch; replayed when returning after [REPLAY_AFTER_MS] in the background. */
+    private var showSplash by mutableStateOf(true)
+    private var stoppedAt = 0L
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) stoppedAt = android.os.SystemClock.elapsedRealtime()
+    }
+
     override fun onStart() {
         super.onStart()
+        if (stoppedAt > 0 && android.os.SystemClock.elapsedRealtime() - stoppedAt > REPLAY_AFTER_MS) showSplash = true
         // Pick up changes made on other devices and flush anything pending.
         CloudScheduler.requestSync(this, delaySeconds = 0)
     }
@@ -63,6 +80,7 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_ROUTE = "route"
+        private const val REPLAY_AFTER_MS = 30_000L
 
         fun intent(context: Context, route: String? = null): Intent =
             Intent(context, MainActivity::class.java).apply {

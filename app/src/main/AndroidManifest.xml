@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optional: auto-detect bank / UPI transactions from SMS (asked at runtime, off by default) -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
         android:name=".KoshApp"
@@ -63,6 +67,26 @@
         <!-- "Mark paid" action on EMI reminder notifications -->
         <receiver
             android:name=".reminder.EmiActionReceiver"
+            android:exported="false" />
+
+        <!-- "Paid" / "Skip" actions on recurring bill notifications -->
+        <receiver
+            android:name=".recurring.RecurringActionReceiver"
+            android:exported="false" />
+
+        <!-- Incoming bank / UPI SMS -> detected transactions -->
+        <receiver
+            android:name=".sms.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- "Add" / "Ignore" actions on detected-transaction notifications -->
+        <receiver
+            android:name=".sms.SmsActionReceiver"
             android:exported="false" />
 
         <!-- Shares exported .xlsx / .csv files from the cache directory -->

@@ -150,7 +150,7 @@ fun SheetsSyncScreen(nav: NavController) {
                         )
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(if (ok) "Connected" else "Sync problem", style = MaterialTheme.typography.titleMedium)
+                            Text(if (ok) "Connected" else "Sync problem", style = MaterialTheme.typography.titleMedium, maxLines = 1)
                             Text(
                                 when {
                                     running -> "Syncing now…"
@@ -159,6 +159,7 @@ fun SheetsSyncScreen(nav: NavController) {
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             )
                         }
                         if (running) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -170,16 +171,16 @@ fun SheetsSyncScreen(nav: NavController) {
                     )
                     if (s.lastSyncError.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
-                        Text(s.lastSyncError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        Text(s.lastSyncError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                     Spacer(Modifier.height(12.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { SyncScheduler.requestSync(ctx, force = true) }) {
-                            Icon(Icons.Filled.Sync, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Sync now")
+                            Icon(Icons.Filled.Sync, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Sync now", maxLines = 1, softWrap = false)
                         }
                         if (s.spreadsheetUrl.isNotBlank()) {
                             FilledTonalButton(onClick = { open(ctx, s.spreadsheetUrl) }) {
-                                Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open sheet")
+                                Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open sheet", maxLines = 1, softWrap = false)
                             }
                         }
                         OutlinedButton(onClick = {
@@ -188,7 +189,7 @@ fun SheetsSyncScreen(nav: NavController) {
                                 SyncScheduler.requestSync(ctx, force = true)
                                 snackbar.showSnackbar("Re-uploading everything…")
                             }
-                        }) { Text("Re-upload everything") }
+                        }) { Text("Re-upload everything", maxLines = 1, softWrap = false) }
                     }
                     Spacer(Modifier.height(8.dp))
                     SwitchRow("Auto-sync", "Upload every change automatically", s.autoSync) {
@@ -198,22 +199,32 @@ fun SheetsSyncScreen(nav: NavController) {
                         scope.launch { c.settings.setWifiOnly(it) }
                     }
                     TextButton(onClick = { confirmDisconnect = true }) {
-                        Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                        Text("Disconnect", color = MaterialTheme.colorScheme.error, maxLines = 1)
                     }
                 }
             }
 
             Section(if (s.syncConfigured) "Connection" else "Connect a Google Sheet") {
-                Text(
-                    "Every expense, EMI and loan you add is written to your own Google Sheet within seconds. " +
-                        "The sheet also opens in Excel. One-time setup, about 2 minutes:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(12.dp))
+                // Once connected, the setup guide is hidden behind a toggle so it doesn't repeat the status card's actions.
+                var showSetup by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                val setupVisible = !s.syncConfigured || showSetup
+                if (s.syncConfigured) {
+                    TextButton(onClick = { showSetup = !showSetup }) {
+                        Text(if (showSetup) "Hide setup steps" else "Change sheet or redeploy script", maxLines = 1, softWrap = false)
+                    }
+                } else {
+                    Text(
+                        "Every expense, EMI and loan you add is written to your own Google Sheet within seconds. " +
+                            "The sheet also opens in Excel. One-time setup, about 2 minutes:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+                if (setupVisible) {
                 Step(1, "Create a new Google Sheet") {
                     FilledTonalButton(onClick = { open(ctx, "https://sheets.new") }) {
-                        Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open sheets.new")
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Open sheets.new", maxLines = 1, softWrap = false)
                     }
                 }
                 Step(2, "In the sheet, open Extensions → Apps Script")
@@ -224,21 +235,22 @@ fun SheetsSyncScreen(nav: NavController) {
                             snackbar.showSnackbar("Script copied — paste it in Apps Script and press Save")
                         }
                     }) {
-                        Icon(Icons.Filled.ContentCopy, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Copy script")
+                        Icon(Icons.Filled.ContentCopy, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Copy script", maxLines = 1, softWrap = false)
                     }
                 }
                 Step(4, "Click Deploy → New deployment → ⚙ Web app. Set \"Execute as: Me\" and \"Who has access: Anyone\", then Deploy and allow access")
+                }
                 Step(5, "Copy the Web app URL (ends with /exec) and paste it here") {
                     OutlinedTextField(
                         value = urlText,
                         onValueChange = { url = it.trim(); testResult = null },
-                        label = { Text("Web app URL") },
-                        placeholder = { Text("https://script.google.com/macros/s/…/exec") },
+                        label = { Text("Web app URL", maxLines = 1) },
+                        placeholder = { Text("https://script.google.com/macros/s/…/exec", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         isError = urlText.isNotEmpty() && !urlLooksRight,
                         supportingText = {
-                            if (urlText.isNotEmpty() && !urlLooksRight) Text("Should start with https://script.google.com/ and end with /exec")
+                            if (urlText.isNotEmpty() && !urlLooksRight) Text("Should start with https://script.google.com/ and end with /exec", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -246,7 +258,7 @@ fun SheetsSyncScreen(nav: NavController) {
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = ::connect, enabled = !testing && urlText.startsWith("https://")) {
-                        Text(if (s.syncConfigured && s.sheetUrl == urlText) "Test connection" else "Connect")
+                        Text(if (s.syncConfigured && s.sheetUrl == urlText) "Test connection" else "Connect", maxLines = 1, softWrap = false)
                     }
                     if (testing) {
                         Spacer(Modifier.width(12.dp))
@@ -259,17 +271,20 @@ fun SheetsSyncScreen(nav: NavController) {
                         msg,
                         color = if (ok) KoshTheme.colors.income else MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
+                if (setupVisible) {
                 Spacer(Modifier.height(12.dp))
                 Text("Private key", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(s.sheetToken, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+                Text(s.sheetToken, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(
                     "Only requests carrying this key can write to your sheet. If you make a new key, copy and redeploy the script.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TextButton(onClick = { scope.launch { c.settings.setSheet(s.sheetUrl, newToken()) } }) { Text("Make a new key") }
+                TextButton(onClick = { scope.launch { c.settings.setSheet(s.sheetUrl, newToken()) } }) { Text("Make a new key", maxLines = 1) }
+                }
             }
 
             Section("What goes into the sheet") {
@@ -310,7 +325,7 @@ private fun Step(n: Int, text: String, extra: (@Composable () -> Unit)? = null) 
             Modifier.size(26.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Text("$n", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("$n", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, softWrap = false)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {

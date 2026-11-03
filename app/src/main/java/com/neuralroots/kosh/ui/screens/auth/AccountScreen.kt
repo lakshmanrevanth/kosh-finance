@@ -1,5 +1,7 @@
 package com.neuralroots.kosh.ui.screens.auth
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,7 +92,7 @@ fun AccountScreen(nav: NavController) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.CloudOff, null, tint = k.warning)
                         Spacer(Modifier.width(12.dp))
-                        Text("Not backed up", style = MaterialTheme.typography.titleMedium)
+                        Text("Not backed up", style = MaterialTheme.typography.titleMedium, maxLines = 1, modifier = Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -101,7 +103,7 @@ fun AccountScreen(nav: NavController) {
                     Button(
                         onClick = { scope.launch { c.settings.setCloudSkipped(false) } },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Sign in or create account") }
+                    ) { Text("Sign in or create account", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 }
                 return@Column
             }
@@ -115,15 +117,15 @@ fun AccountScreen(nav: NavController) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val initial = (u.displayName ?: u.email ?: "?").trim().firstOrNull()?.uppercase() ?: "?"
                     Box(
-                        Modifier.size(56.dp).background(Color.White.copy(alpha = 0.2f), CircleShape),
+                        Modifier.size(56.dp).background(HeroText.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center,
-                    ) { Text(initial, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                    ) { Text(initial, color = HeroText, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                     Spacer(Modifier.width(16.dp))
                     Column {
-                        Text(u.displayName?.takeIf { it.isNotBlank() } ?: "Kosh user", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                        Text(u.email ?: "", color = Color.White.copy(alpha = 0.85f))
+                        Text(u.displayName?.takeIf { it.isNotBlank() } ?: "Kosh user", color = HeroText, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(u.email ?: "", color = HeroText.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         val via = if (u.providerData.any { it.providerId == "google.com" }) "Google account" else "Email & password"
-                        Text("Signed in with $via", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelMedium)
+                        Text("Signed in with $via", color = HeroText.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -135,11 +137,12 @@ fun AccountScreen(nav: NavController) {
                     Icon(if (ok) Icons.Filled.CloudDone else Icons.Filled.CloudSync, null, tint = if (ok) k.income else k.warning)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(if (ok) "Backed up" else "Backup pending", style = MaterialTheme.typography.titleMedium)
+                        Text(if (ok) "Backed up" else "Backup pending", style = MaterialTheme.typography.titleMedium, maxLines = 1)
                         Text(
                             if (s.lastCloudPush > 0) "Last backup ${Dates.dayHeader(s.lastCloudPush).lowercase()} at ${Dates.formatTime(s.lastCloudPush)}"
                             else "Not backed up yet",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
                     if (busy || working) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -150,7 +153,7 @@ fun AccountScreen(nav: NavController) {
                 }
                 if (s.cloudError.isNotEmpty()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(s.cloudError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(s.cloudError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(
@@ -164,14 +167,14 @@ fun AccountScreen(nav: NavController) {
                     },
                     enabled = !busy && !working,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Icon(Icons.Filled.CloudSync, null); Spacer(Modifier.width(8.dp)); Text("Back up & sync now") }
+                ) { Icon(Icons.Filled.CloudSync, null); Spacer(Modifier.width(8.dp)); Text("Back up & sync now", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
             }
 
             KoshCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(12.dp))
-                    Text("How your data is protected", style = MaterialTheme.typography.titleMedium)
+                    Text("How your data is protected", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(8.dp))
                 listOf(
@@ -185,12 +188,12 @@ fun AccountScreen(nav: NavController) {
             }
 
             OutlinedButton(onClick = { confirmSignOut = true }, modifier = Modifier.fillMaxWidth(), enabled = !working) {
-                Icon(Icons.AutoMirrored.Filled.Logout, null); Spacer(Modifier.width(8.dp)); Text("Sign out")
+                Icon(Icons.AutoMirrored.Filled.Logout, null); Spacer(Modifier.width(8.dp)); Text("Sign out", maxLines = 1)
             }
             OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth(), enabled = !working) {
                 Icon(Icons.Filled.DeleteForever, null, tint = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.width(8.dp))
-                Text("Delete account and cloud data", color = MaterialTheme.colorScheme.error)
+                Text("Delete account and cloud data", color = MaterialTheme.colorScheme.error, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
     }

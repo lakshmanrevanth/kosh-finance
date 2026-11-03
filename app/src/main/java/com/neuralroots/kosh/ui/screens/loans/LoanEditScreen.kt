@@ -3,6 +3,7 @@
 package com.neuralroots.kosh.ui.screens.loans
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -168,7 +169,7 @@ fun LoanEditScreen(nav: NavController, id: Long?, personId: Long?) {
                     SegmentedButton(
                         selected = vm.direction == d, onClick = { vm.direction = d },
                         shape = SegmentedButtonDefaults.itemShape(i, 2),
-                    ) { Text(label) }
+                    ) { Text(label, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 }
             }
             Text(
@@ -182,8 +183,8 @@ fun LoanEditScreen(nav: NavController, id: Long?, personId: Long?) {
             OutlinedTextField(
                 value = vm.rate,
                 onValueChange = { s -> if (s.matches(Regex("""^\d{0,3}(\.\d{0,2})?$"""))) vm.rate = s },
-                label = { Text("Interest % per year (optional)") }, suffix = { Text("%") },
-                supportingText = { Text("Simple interest. Leave empty if interest-free.") },
+                label = { Text("Interest % / year (optional)", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }, suffix = { Text("%") },
+                supportingText = { Text("Simple interest. Leave empty if interest-free.", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = vm.rateError != null, singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
@@ -217,7 +218,7 @@ fun LoanEditScreen(nav: NavController, id: Long?, personId: Long?) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text(if (vm.isNew) "Save loan" else "Save changes") }
+            ) { Text(if (vm.isNew) "Save loan" else "Save changes", maxLines = 1) }
             Spacer(Modifier.height(16.dp).navigationBarsPadding())
         }
     }
@@ -250,7 +251,7 @@ private fun PersonField(value: String, onChange: (String) -> Unit, people: List<
             leadingIcon = { Icon(Icons.Filled.Person, null) },
             supportingText = {
                 val exists = people.any { it.name.equals(value.trim(), ignoreCase = true) }
-                if (value.isNotBlank() && !exists) Text("New person “${value.trim()}” will be added")
+                if (value.isNotBlank() && !exists) Text("New person “${value.trim()}” will be added", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             },
             isError = isError,
             singleLine = true,
@@ -258,7 +259,7 @@ private fun PersonField(value: String, onChange: (String) -> Unit, people: List<
         )
         ExposedDropdownMenu(expanded = expanded && matches.isNotEmpty(), onDismissRequest = { expanded = false }) {
             matches.forEach { p ->
-                DropdownMenuItem(text = { Text(p.name) }, onClick = { onChange(p.name); expanded = false })
+                DropdownMenuItem(text = { Text(p.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }, onClick = { onChange(p.name); expanded = false })
             }
         }
     }
@@ -268,9 +269,10 @@ private fun PersonField(value: String, onChange: (String) -> Unit, people: List<
 fun ToggleRow(title: String, subtitle: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(8.dp))
         Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }

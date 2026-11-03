@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.emi
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -89,7 +92,7 @@ fun EmisScreen(nav: NavController) {
             ExtendedFloatingActionButton(
                 onClick = { nav.navigate(Routes.emiEdit()) },
                 icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text("Add EMI") },
+                text = { Text("Add EMI", maxLines = 1, softWrap = false) },
             )
         },
     ) { pad ->
@@ -111,7 +114,7 @@ fun EmisScreen(nav: NavController) {
                             selected = tab == i,
                             onClick = { tab = i },
                             shape = SegmentedButtonDefaults.itemShape(i, 2),
-                        ) { Text(label) }
+                        ) { Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) }
                     }
                 }
             }
@@ -120,8 +123,6 @@ fun EmisScreen(nav: NavController) {
                     emoji = "🗓️",
                     title = "No active EMIs",
                     subtitle = "Add your home, car, phone or credit-card EMIs to see due dates, progress and reminders.",
-                    action = "Add EMI",
-                    onAction = { nav.navigate(Routes.emiEdit()) },
                 ) else EmptyState(emoji = "🎉", title = "No closed EMIs yet", subtitle = "Finished EMIs show up here.")
             }
             items(shown, key = { it.emi.id }) { p ->
@@ -149,14 +150,14 @@ fun EmisScreen(nav: NavController) {
 @Composable
 private fun EmiHero(active: List<EmiProgress>) {
     HeroCard {
-        Text("Monthly EMI outflow", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
+        Text("Monthly EMI outflow", style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(4.dp))
-        Text(Money.format(active.sumOf { it.emi.emiAmount }), style = MaterialTheme.typography.headlineMedium)
+        com.neuralroots.kosh.ui.components.FitText(Money.format(active.sumOf { it.emi.emiAmount }), style = MaterialTheme.typography.headlineMedium, color = HeroText, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HeroStat("Remaining", Money.compact(active.sumOf { it.amountRemaining }), Modifier.weight(1f))
             HeroStat("Principal left", Money.compact(active.sumOf { it.principalOutstanding }), Modifier.weight(1f))
-            HeroStat("Active", active.size.toString(), Modifier.weight(0.6f))
+            HeroStat("Active", active.size.toString(), Modifier.weight(0.7f))
         }
     }
 }
@@ -173,12 +174,13 @@ private fun EmiCard(p: EmiProgress, onClick: () -> Unit, onPay: () -> Unit) {
                 Text(e.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (e.lender.isNotBlank()) Text(
                     e.lender, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(Money.format(e.emiAmount), style = MaterialTheme.typography.titleMedium)
-                Text("per month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.widthIn(max = 140.dp), horizontalAlignment = Alignment.End) {
+                com.neuralroots.kosh.ui.components.FitText(Money.format(e.emiAmount), style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("per month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -188,10 +190,13 @@ private fun EmiCard(p: EmiProgress, onClick: () -> Unit, onPay: () -> Unit) {
             Text(
                 "${p.paidCount} of ${e.tenureMonths} paid",
                 style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+            Spacer(Modifier.width(8.dp))
             Text(
                 if (p.isClosed) "Completed" else Money.format(p.amountRemaining) + " left",
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, softWrap = false,
             )
         }
         val due = p.nextDueDate
@@ -205,17 +210,18 @@ private fun EmiCard(p: EmiProgress, onClick: () -> Unit, onPay: () -> Unit) {
                     Text(
                         Dates.relativeDue(due) + " · " + Dates.formatDayShort(due),
                         style = MaterialTheme.typography.bodyMedium, color = c, fontWeight = FontWeight.Medium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     if (p.overdueCount > 1) Text(
                         "${p.overdueCount} installments overdue",
-                        style = MaterialTheme.typography.labelSmall, color = colors.expense,
+                        style = MaterialTheme.typography.labelSmall, color = colors.expense, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     else if (e.autoPay) Text(
                         "Auto-pay on", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                FilledTonalButton(onClick = onPay, contentPadding = PaddingValues(horizontal = 18.dp)) { Text("Pay") }
+                FilledTonalButton(onClick = onPay, contentPadding = PaddingValues(horizontal = 18.dp)) { Text("Pay", maxLines = 1, softWrap = false) }
             }
         }
     }

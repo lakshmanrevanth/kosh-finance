@@ -2,7 +2,10 @@ package com.neuralroots.kosh
 
 import android.app.Application
 import android.content.Context
+import com.neuralroots.kosh.budget.BudgetWatcher
+import com.neuralroots.kosh.budget.DailyLogScheduler
 import com.neuralroots.kosh.cloud.CloudScheduler
+import com.neuralroots.kosh.recurring.RecurringScheduler
 import com.neuralroots.kosh.cloud.CloudSync
 import com.neuralroots.kosh.data.db.KoshDatabase
 import com.neuralroots.kosh.data.prefs.SettingsStore
@@ -28,6 +31,7 @@ class AppContainer(val app: Application) {
             SyncScheduler.requestSync(app)
             CloudScheduler.requestSync(app)
             WidgetRefresher.refreshAll(app)
+            BudgetWatcher.check(app)
         }
     }
     /** Firebase cloud backup (users/{uid}/… in Firestore). */
@@ -53,6 +57,8 @@ class KoshApp : Application() {
             ReminderScheduler.schedule(this@KoshApp)
             SyncScheduler.schedulePeriodic(this@KoshApp)
             CloudScheduler.schedulePeriodic(this@KoshApp)
+            RecurringScheduler.schedule(this@KoshApp)
+            DailyLogScheduler.schedule(this@KoshApp)
         }
     }
 }

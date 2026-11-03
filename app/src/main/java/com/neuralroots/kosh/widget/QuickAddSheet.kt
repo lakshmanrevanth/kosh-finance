@@ -1,5 +1,8 @@
 package com.neuralroots.kosh.widget
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -217,7 +220,7 @@ fun QuickAddSheet(
                             .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.outlineVariant),
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Quick add", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                        Text("Quick add", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, "Close") }
                     }
 
@@ -228,7 +231,7 @@ fun QuickAddSheet(
                                 selected = type == t,
                                 onClick = { type = t; error = null },
                                 shape = SegmentedButtonDefaults.itemShape(i, types.size),
-                            ) { Text(t.label) }
+                            ) { Text(t.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) }
                         }
                     }
 
@@ -239,12 +242,12 @@ fun QuickAddSheet(
                             amount.endsWith(".") || amount.contains('.') -> Money.symbol + amount
                             else -> Money.format(parsed)
                         }
-                        Text(
+                        com.neuralroots.kosh.ui.components.FitText(
                             shown,
-                            style = AmountStyle.copy(fontSize = 44.sp),
+                            style = AmountStyle,
                             color = if (amount.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else accent,
                             textAlign = TextAlign.Center,
-                            maxLines = 1,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
@@ -266,7 +269,7 @@ fun QuickAddSheet(
                                 FilterChip(
                                     selected = c.id == categoryId,
                                     onClick = { categoryId = c.id; error = null },
-                                    label = { Text("${c.emoji}  ${c.name}") },
+                                    label = { Text("${c.emoji}  ${c.name}", maxLines = 1, softWrap = false) },
                                 )
                             }
                         }
@@ -275,16 +278,19 @@ fun QuickAddSheet(
                     }
 
                     // Date chips
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         val today = Dates.startOfDay(System.currentTimeMillis())
                         val yesterday = Dates.startOfDay(Dates.toMs(Dates.today().minusDays(1)))
                         val day = Dates.startOfDay(date)
-                        FilterChip(selected = day == today, onClick = { date = Dates.withCurrentTime(today, date) }, label = { Text("Today") })
-                        FilterChip(selected = day == yesterday, onClick = { date = Dates.withCurrentTime(yesterday, date) }, label = { Text("Yesterday") })
+                        FilterChip(selected = day == today, onClick = { date = Dates.withCurrentTime(today, date) }, label = { Text("Today", maxLines = 1) })
+                        FilterChip(selected = day == yesterday, onClick = { date = Dates.withCurrentTime(yesterday, date) }, label = { Text("Yesterday", maxLines = 1) })
                         FilterChip(
                             selected = day != today && day != yesterday,
                             onClick = { showDate = true },
-                            label = { Text(if (day != today && day != yesterday) Dates.formatDayShort(date) else "Pick date") },
+                            label = { Text(if (day != today && day != yesterday) Dates.formatDayShort(date) else "Pick date", maxLines = 1) },
                         )
                     }
 
@@ -297,7 +303,7 @@ fun QuickAddSheet(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(
                                 value = payee, onValueChange = { payee = it },
-                                label = { Text(if (type == TxType.INCOME) "From (payer)" else "Paid to (payee)") },
+                                label = { Text(if (type == TxType.INCOME) "From (payer)" else "Paid to (payee)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 singleLine = true, modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
@@ -307,7 +313,7 @@ fun QuickAddSheet(
                             if (type != TxType.TRANSFER) {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     PaymentMode.entries.forEach { m ->
-                                        FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m.label) })
+                                        FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m.label, maxLines = 1, softWrap = false) })
                                     }
                                 }
                             }
@@ -326,7 +332,7 @@ fun QuickAddSheet(
                     ) {
                         Text(
                             if (parsed > 0) "Save ${Money.format(parsed)}" else "Save",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -386,10 +392,10 @@ private fun AccountChips(accounts: List<AccountWithBalance>, selected: Long?, on
                 onClick = { onSelect(a.account.id) },
                 label = {
                     Column(Modifier.padding(vertical = 6.dp)) {
-                        Text(a.account.name, fontWeight = FontWeight.Medium)
+                        Text(a.account.name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 150.dp))
                         Text(
                             Money.format(a.balance), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false,
                         )
                     }
                 },

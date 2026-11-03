@@ -3,6 +3,7 @@ package com.neuralroots.kosh.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -108,7 +112,7 @@ fun KoshTopBar(
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
 ) {
     TopAppBar(
-        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = { FitText(title, style = MaterialTheme.typography.titleLarge, minScale = 0.7f) },
         navigationIcon = {
             if (onBack != null) IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -127,13 +131,15 @@ fun KoshCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(16.dp)
+    val border = androidx.compose.foundation.BorderStroke(1.dp, KoshTheme.colors.hairline)
+    val elevation = CardDefaults.cardElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
     if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors) {
+        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors, border = border, elevation = elevation) {
             Column(Modifier.padding(contentPadding), content = content)
         }
     } else {
-        Card(modifier = modifier, shape = shape, colors = colors) {
+        Card(modifier = modifier, shape = shape, colors = colors, border = border, elevation = elevation) {
             Column(Modifier.padding(contentPadding), content = content)
         }
     }
@@ -142,11 +148,19 @@ fun KoshCard(
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, action: String? = null, onAction: () -> Unit = {}) {
     Row(
-        modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+        modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        if (action != null) TextButton(onClick = onAction) { Text(action) }
+        EmberDot()
+        Spacer(Modifier.width(10.dp))
+        Text(
+            title.uppercase(), style = com.neuralroots.kosh.ui.theme.MonoLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        if (action != null) TextButton(onClick = onAction) {
+            Text(action.uppercase() + " →", style = com.neuralroots.kosh.ui.theme.MonoLabel, color = KoshTheme.colors.ember, maxLines = 1, softWrap = false)
+        }
     }
 }
 
@@ -165,7 +179,10 @@ fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(emoji, fontSize = 48.sp)
-        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(
+            title, style = MaterialTheme.typography.headlineSmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+            textAlign = TextAlign.Center,
+        )
         if (subtitle.isNotEmpty()) Text(
             subtitle, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
@@ -252,10 +269,12 @@ fun TxnListItem(row: TxnRow, onClick: () -> Unit, modifier: Modifier = Modifier,
             Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
-        Text(
+        FitText(
             signedAmount(t.type, t.amount),
             style = MaterialTheme.typography.titleSmall,
             color = if (t.type == TxType.EXPENSE) MaterialTheme.colorScheme.onSurface else color,
+            textAlign = TextAlign.End,
+            modifier = Modifier.widthIn(max = 132.dp),
         )
     }
 }
@@ -282,11 +301,12 @@ fun RoundedProgress(
 @Composable
 fun StatPill(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.10f)).padding(12.dp),
+        modifier.clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.08f))
+            .border(1.dp, color.copy(alpha = 0.22f), RoundedCornerShape(12.dp)).padding(12.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(2.dp))
-        Text(value, style = MaterialTheme.typography.titleMedium, color = color, maxLines = 1)
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.height(4.dp))
+        FitText(value, style = MaterialTheme.typography.titleMedium, color = color)
     }
 }
 
@@ -498,6 +518,103 @@ fun LegendDot(color: Color, label: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(color))
         Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
+
+
+// ------------------------------------------------------------------ nullchat-style signature pieces
+
+/** The glowing ember dot used before labels and as the "live" indicator. */
+@Composable
+fun EmberDot(size: Dp = 6.dp, color: Color = KoshTheme.colors.ember) {
+    Box(
+        Modifier.size(size * 2.6f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(size * 2.6f).clip(CircleShape).background(color.copy(alpha = 0.18f)))
+        Box(Modifier.size(size * 1.6f).clip(CircleShape).background(color.copy(alpha = 0.30f)))
+        Box(Modifier.size(size).clip(CircleShape).background(color))
+    }
+}
+
+/** "(01)  HOW IT WORKS" — numbered mono eyebrow. */
+@Composable
+fun Eyebrow(text: String, number: Int? = null, color: Color = MaterialTheme.colorScheme.onSurfaceVariant, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (number != null) {
+            Text("(" + number.toString().padStart(2, '0') + ")", style = com.neuralroots.kosh.ui.theme.MonoLabel, color = KoshTheme.colors.ember)
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(text.uppercase(), style = com.neuralroots.kosh.ui.theme.MonoLabel, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Serif headline with an italic, ember-coloured phrase: SerifHeadline("Every rupee,", "accounted for."). */
+@Composable
+fun SerifHeadline(
+    lead: String,
+    emphasis: String = "",
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.displaySmall,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+) {
+    val ember = KoshTheme.colors.ember
+    Text(
+        androidx.compose.ui.text.buildAnnotatedString {
+            append(lead)
+            if (emphasis.isNotEmpty()) {
+                // Emphasis always starts on its own line so it never leaves an orphan word.
+                append('\n')
+                pushStyle(androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = ember))
+                append(emphasis)
+                pop()
+            }
+        },
+        style = style, color = color, modifier = modifier,
+    )
+}
+
+/** Thin warm divider. */
+@Composable
+fun Hairline(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(1.dp).background(KoshTheme.colors.hairline))
+}
+
+
+/**
+ * Single-line text that shrinks (down to [minScale]) until it fits its width instead of being
+ * clipped or wrapped — use for money amounts and other values that must stay on one line.
+ */
+@Composable
+fun FitText(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = androidx.compose.material3.LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = null,
+    minScale: Float = 0.55f,
+) {
+    val base = androidx.compose.material3.LocalTextStyle.current.merge(style)
+    var scale by remember(text, base) { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    var ready by remember(text, base) { mutableStateOf(false) }
+    val sized = if (scale == 1f) base else base.copy(
+        fontSize = base.fontSize * scale,
+        lineHeight = if (base.lineHeight.isSpecified) base.lineHeight * scale else base.lineHeight,
+    )
+    Text(
+        text = text,
+        style = sized,
+        color = color,
+        fontWeight = fontWeight,
+        textAlign = textAlign,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        onTextLayout = { r ->
+            if (r.hasVisualOverflow && scale > minScale) scale = (scale * 0.9f).coerceAtLeast(minScale) else ready = true
+        },
+        modifier = modifier.drawWithContent { if (ready) drawContent() },
+    )
 }

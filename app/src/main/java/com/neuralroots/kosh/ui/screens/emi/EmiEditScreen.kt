@@ -211,14 +211,14 @@ fun EmiEditScreen(nav: NavController, id: Long?) {
                 OutlinedTextField(
                     value = vm.rate,
                     onValueChange = { s -> if (s.matches(Regex("""^\d{0,3}(\.\d{0,3})?$"""))) { vm.rate = s; vm.onLoanTermsChanged() } },
-                    label = { Text("Interest % p.a.") }, suffix = { Text("%") },
+                    label = { Text("Interest % p.a.", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }, suffix = { Text("%") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = vm.rateError != null, singleLine = true, modifier = Modifier.weight(1f),
                 )
                 OutlinedTextField(
                     value = vm.tenure,
                     onValueChange = { s -> if (s.matches(Regex("""^\d{0,3}$"""))) { vm.tenure = s; vm.onLoanTermsChanged() } },
-                    label = { Text("Tenure") }, suffix = { Text("months") },
+                    label = { Text("Tenure (months)", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }, suffix = { Text("mo") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = err && vm.tenureError != null, singleLine = true, modifier = Modifier.weight(1f),
                 )
@@ -228,7 +228,7 @@ fun EmiEditScreen(nav: NavController, id: Long?) {
                     FilterChip(
                         selected = vm.tenureValue == m,
                         onClick = { vm.tenure = m.toString(); vm.onLoanTermsChanged() },
-                        label = { Text(if (m >= 24 && m % 12 == 0) "${m / 12} yrs" else "$m mo") },
+                        label = { Text(if (m >= 24 && m % 12 == 0) "${m / 12} yrs" else "$m mo", maxLines = 1, softWrap = false) },
                     )
                 }
             }
@@ -241,20 +241,20 @@ fun EmiEditScreen(nav: NavController, id: Long?) {
             if (vm.emiManual && computed != null && computed != vm.emiMinor) {
                 TextButton(onClick = { vm.recalculate() }) {
                     Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(6.dp))
-                    Text("Recalculate (${Money.format(computed)})")
+                    Text("Recalculate (${Money.format(computed)})", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
             if (vm.emiMinor > 0 && vm.tenureValue > 0) {
                 val total = vm.emiMinor * vm.tenureValue
                 KoshCard(Modifier.fillMaxWidth()) {
-                    Row {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("Total payable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Money.format(total), style = MaterialTheme.typography.titleMedium)
+                            Text("Total payable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            com.neuralroots.kosh.ui.components.FitText(Money.format(total), style = MaterialTheme.typography.titleMedium)
                         }
                         if (vm.principalMinor > 0) Column(Modifier.weight(1f)) {
-                            Text("Total interest", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Money.format((total - vm.principalMinor).coerceAtLeast(0)), style = MaterialTheme.typography.titleMedium)
+                            Text("Total interest", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            com.neuralroots.kosh.ui.components.FitText(Money.format((total - vm.principalMinor).coerceAtLeast(0)), style = MaterialTheme.typography.titleMedium)
                         }
                     }
                     Spacer(Modifier.height(4.dp))
@@ -279,25 +279,27 @@ fun EmiEditScreen(nav: NavController, id: Long?) {
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Installments already paid", style = MaterialTheme.typography.bodyLarge)
+                    Text("Installments already paid", style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(
                         "Paid before you started tracking here (no expense is recorded for these)",
                         style = MaterialTheme.typography.bodySmall, color = if (err && vm.paidBeforeError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 FilledTonalIconButton(onClick = { if (vm.paidBefore > 0) vm.paidBefore-- }) { Icon(Icons.Filled.Remove, "Less") }
-                Text(vm.paidBefore.toString(), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 8.dp))
+                Text(vm.paidBefore.toString(), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 6.dp), maxLines = 1, softWrap = false)
                 FilledTonalIconButton(onClick = { if (vm.paidBefore < vm.tenureValue) vm.paidBefore++ }) { Icon(Icons.Filled.Add, "More") }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Auto-pay", style = MaterialTheme.typography.bodyLarge)
+                    Text("Auto-pay", style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                     Text(
                         if (vm.accountId == null) "Choose a debit account to enable"
                         else "Automatically record the payment on the due date",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
+                Spacer(Modifier.width(8.dp))
                 Switch(checked = vm.autoPay && vm.accountId != null, onCheckedChange = { vm.autoPay = it }, enabled = vm.accountId != null)
             }
             Text("Remind me before due date", style = MaterialTheme.typography.bodyLarge)
@@ -313,7 +315,7 @@ fun EmiEditScreen(nav: NavController, id: Long?) {
             Button(
                 onClick = { vm.save { nav.popBackStack() } },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-            ) { Text(if (vm.isNew) "Add EMI" else "Save changes") }
+            ) { Text(if (vm.isNew) "Add EMI" else "Save changes", maxLines = 1) }
             Spacer(Modifier.height(16.dp).navigationBarsPadding())
         }
     }

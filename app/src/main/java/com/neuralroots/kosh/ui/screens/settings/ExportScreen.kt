@@ -130,7 +130,7 @@ fun ExportScreen(nav: NavController) {
             Section("Period (for transactions)") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Period.entries.forEach { p ->
-                        FilterChip(selected = period == p, onClick = { period = p }, label = { Text(p.label) })
+                        FilterChip(selected = period == p, onClick = { period = p }, label = { Text(p.label, maxLines = 1, softWrap = false) })
                     }
                 }
                 if (period == Period.CUSTOM) {
@@ -150,7 +150,7 @@ fun ExportScreen(nav: NavController) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(checked = on, onCheckedChange = { if (it) selected.add(e) else selected.remove(e) })
-                        Text(SheetHeaders.title(e), style = MaterialTheme.typography.bodyLarge)
+                        Text(SheetHeaders.title(e), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text(
@@ -167,7 +167,7 @@ fun ExportScreen(nav: NavController) {
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Icon(Icons.Filled.Save, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Save Excel file (.xlsx)")
+                    Icon(Icons.Filled.Save, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Save Excel file (.xlsx)", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(8.dp))
                 FilledTonalButton(
@@ -185,7 +185,7 @@ fun ExportScreen(nav: NavController) {
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Share Excel file")
+                    Icon(Icons.Filled.Share, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Share Excel file", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(
@@ -193,13 +193,13 @@ fun ExportScreen(nav: NavController) {
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(16.dp),
-                ) { Text("Save transactions as CSV") }
+                ) { Text("Save transactions as CSV", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 if (busy) {
                     Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(10.dp))
-                        Text("Preparing file…")
+                        Text("Preparing file…", maxLines = 1)
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.neuralroots.kosh.ui.screens.transactions
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,12 +28,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -176,6 +182,22 @@ class TxnEditViewModel(
         }
     }
 
+    /** Saves a copy dated now (unlinked from any EMI/loan) and returns its id. */
+    fun duplicate(onDone: (Long) -> Unit) {
+        val t = existing ?: return
+        val now = System.currentTimeMillis()
+        viewModelScope.launch {
+            runCatching {
+                repo.saveTxn(
+                    t.copy(
+                        id = 0, uuid = com.neuralroots.kosh.data.db.newUuid(), date = now,
+                        emiId = null, loanId = null, createdAt = now, updatedAt = now,
+                    )
+                )
+            }.onSuccess(onDone).onFailure { error = it.message ?: "Could not duplicate" }
+        }
+    }
+
     fun delete(onDone: () -> Unit) {
         val t = existing ?: return
         viewModelScope.launch { repo.deleteTxn(t.id); onDone() }
@@ -192,6 +214,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
     val categories by vm.categories.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     val isNew = id == null
     val color = txTypeColor(vm.type)
@@ -207,6 +230,28 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                 onBack = { nav.popBackStack() },
                 actions = {
                     if (!isNew) IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, "Delete") }
+                    val canRepeat = !isNew && vm.existing?.type in listOf(TxType.EXPENSE, TxType.INCOME, TxType.TRANSFER)
+                    if (canRepeat) Box {
+                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
+                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Duplicate (dated now)") },
+                                leadingIcon = { Icon(Icons.Filled.ContentCopy, null) },
+                                onClick = {
+                                    menu = false
+                                    vm.duplicate { newId ->
+                                        nav.popBackStack()
+                                        nav.navigate(Routes.txnEdit(id = newId))
+                                    }
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Make recurring") },
+                                leadingIcon = { Icon(Icons.Filled.Repeat, null) },
+                                onClick = { menu = false; id?.let { nav.navigate(Routes.recurringEdit(fromTxn = it)) } },
+                            )
+                        }
+                    }
                 },
             )
         },
@@ -216,7 +261,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                     onClick = { vm.save { nav.popBackStack() } },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     enabled = vm.loaded,
-                ) { Text(if (isNew) "Save" else "Update", style = MaterialTheme.typography.titleMedium) }
+                ) { Text(if (isNew) "Save" else "Update", style = MaterialTheme.typography.titleMedium, maxLines = 1, softWrap = false) }
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -232,7 +277,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "This entry is linked to a loan. Edit the amount from the loan screen; here you can change the date, payee and note.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -244,7 +289,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                             selected = vm.type == t,
                             onClick = { vm.setTxType(t) },
                             shape = SegmentedButtonDefaults.itemShape(i, opts.size),
-                        ) { Text(t.label) }
+                        ) { Text(t.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) }
                     }
                 }
             }
@@ -252,21 +297,27 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
             // Amount
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Amount", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Shrink the big amount as more digits are typed so it always fits the screen.
+                val len = vm.amount.length
+                val amountStyle = AmountStyle.let { st ->
+                    val f = when { len > 10 -> 0.62f; len > 8 -> 0.74f; len > 6 -> 0.86f; else -> 1f }
+                    if (f == 1f) st else st.copy(fontSize = st.fontSize * f, lineHeight = st.lineHeight * f)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(Money.symbol, style = AmountStyle, color = color)
+                    Text(Money.symbol, style = amountStyle, color = color, maxLines = 1)
                     Spacer(Modifier.width(4.dp))
                     BasicTextField(
                         value = vm.amount,
                         onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""^\d{0,12}(\.\d{0,2})?$"""))) vm.amount = s },
-                        textStyle = AmountStyle.copy(color = color, textAlign = TextAlign.Start),
+                        textStyle = amountStyle.copy(color = color, textAlign = TextAlign.Start),
                         singleLine = true,
                         readOnly = vm.isLoan,
                         cursorBrush = SolidColor(color),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.widthIn(min = 60.dp, max = 280.dp).width(androidx.compose.foundation.layout.IntrinsicSize.Min).focusRequester(focus),
+                        modifier = Modifier.widthIn(min = 60.dp, max = 260.dp).width(androidx.compose.foundation.layout.IntrinsicSize.Min).focusRequester(focus),
                         decorationBox = { inner ->
                             Box {
-                                if (vm.amount.isEmpty()) Text("0", style = AmountStyle, color = color.copy(alpha = 0.35f))
+                                if (vm.amount.isEmpty()) Text("0", style = amountStyle, color = color.copy(alpha = 0.35f))
                                 inner()
                             }
                         },
@@ -295,7 +346,10 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                         ) {
                             Text(cat.emoji)
                             Spacer(Modifier.width(6.dp))
-                            Text(cat.name, style = MaterialTheme.typography.labelLarge, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium)
+                            Text(
+                                cat.name, style = MaterialTheme.typography.labelLarge, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 150.dp),
+                            )
                         }
                     }
                     AssistChip(
@@ -327,7 +381,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
 
             OutlinedTextField(
                 value = vm.payee, onValueChange = { vm.payee = it },
-                label = { Text(if (vm.type == TxType.INCOME) "From (payer)" else "Paid to (payee)") },
+                label = { Text(if (vm.type == TxType.INCOME) "From (payer)" else "Paid to (payee)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -339,7 +393,7 @@ fun TxnEditScreen(nav: NavController, id: Long?, type: TxType, categoryId: Long?
                 Label("Payment mode")
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PaymentMode.entries.forEach { m ->
-                        FilterChip(selected = vm.mode == m, onClick = { vm.mode = m }, label = { Text(m.label) })
+                        FilterChip(selected = vm.mode == m, onClick = { vm.mode = m }, label = { Text(m.label, maxLines = 1, softWrap = false) })
                     }
                 }
             }
@@ -402,8 +456,8 @@ private fun AccountPicker(
                 )
                 Spacer(Modifier.width(8.dp))
                 Column {
-                    Text(a.account.name, style = MaterialTheme.typography.labelLarge)
-                    Text(Money.format(a.balance), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(a.account.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 150.dp))
+                    Text(Money.format(a.balance), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false)
                 }
             }
         }

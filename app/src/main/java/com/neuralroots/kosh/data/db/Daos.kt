@@ -187,6 +187,18 @@ interface TxnDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun countForCategory(categoryId: Long): Int
 
+    /** Category most recently used for this payee (merchant learning). */
+    @Query("SELECT categoryId FROM transactions WHERE payee = :payee COLLATE NOCASE AND categoryId IS NOT NULL AND type = :type ORDER BY date DESC LIMIT 1")
+    suspend fun lastCategoryForPayee(payee: String, type: TxType): Long?
+
+    /** Transactions with this exact amount in a time window (duplicate check for SMS-detected entries). */
+    @Query("SELECT COUNT(*) FROM transactions WHERE amount = :amount AND date BETWEEN :from AND :to")
+    suspend fun countSimilar(amount: Long, from: Long, to: Long): Int
+
+    /** Distinct payees for autocomplete, most used first. */
+    @Query("SELECT payee FROM transactions WHERE payee != '' GROUP BY payee COLLATE NOCASE ORDER BY COUNT(*) DESC LIMIT 200")
+    fun observePayees(): Flow<List<String>>
+
     @Insert suspend fun insert(t: Txn): Long
     @Update suspend fun update(t: Txn)
     @Delete suspend fun delete(t: Txn)
@@ -379,4 +391,56 @@ interface CloudOutboxDao {
 
     @Query("DELETE FROM cloud_outbox")
     suspend fun clear()
+}
+
+@Dao
+interface RecurringDao {
+    @Query("SELECT * FROM recurring ORDER BY active DESC, nextDate")
+    fun observeAll(): Flow<List<Recurring>>
+
+    @Query("SELECT * FROM recurring WHERE id = :id")
+    fun observe(id: Long): Flow<Recurring?>
+
+    @Query("SELECT * FROM recurring WHERE id = :id")
+    suspend fun get(id: Long): Recurring?
+
+    @Query("SELECT * FROM recurring WHERE uuid = :uuid")
+    suspend fun byUuid(uuid: String): Recurring?
+
+    @Query("SELECT * FROM recurring")
+    suspend fun all(): List<Recurring>
+
+    @Query("SELECT * FROM recurring WHERE active = 1 AND nextDate <= :until ORDER BY nextDate")
+    suspend fun dueBy(until: Long): List<Recurring>
+
+    @Insert suspend fun insert(r: Recurring): Long
+    @Update suspend fun update(r: Recurring)
+    @Delete suspend fun delete(r: Recurring)
+}
+
+@Dao
+interface DetectedDao {
+    @Query("SELECT * FROM detected WHERE status = 'PENDING' ORDER BY date DESC")
+    fun observePending(): Flow<List<DetectedTxn>>
+
+    @Query("SELECT COUNT(*) FROM detected WHERE status = 'PENDING'")
+    fun observePendingCount(): Flow<Int>
+
+    @Query("SELECT * FROM detected ORDER BY date DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<DetectedTxn>>
+
+    @Query("SELECT * FROM detected WHERE id = :id")
+    suspend fun get(id: Long): DetectedTxn?
+
+    /** Returns -1 when the fingerprint already exists. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(d: DetectedTxn): Long
+
+    @Update suspend fun update(d: DetectedTxn)
+
+    @Query("UPDATE detected SET status = 'IGNORED' WHERE status = 'PENDING'")
+    suspend fun ignoreAllPending()
+
+    @Query("DELETE FROM detected WHERE status != 'PENDING' AND createdAt < :before")
+    suspend fun purgeOld(before: Long)
 }

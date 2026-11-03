@@ -1,5 +1,7 @@
 package com.neuralroots.kosh.ui.screens.transactions
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -158,7 +160,7 @@ fun TransactionsScreen(nav: NavController) {
                     OutlinedTextField(
                         value = f.query,
                         onValueChange = { q -> vm.update { it.copy(query = q) } },
-                        placeholder = { Text("Search payee, note or category") },
+                        placeholder = { Text("Search payee, note, category", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(Icons.Filled.Search, null) },
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
@@ -252,7 +254,7 @@ private fun Filters(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TypeFilter.entries.forEach { t ->
-                FilterChip(selected = f.type == t, onClick = { update { it.copy(type = t) } }, label = { Text(t.label) })
+                FilterChip(selected = f.type == t, onClick = { update { it.copy(type = t) } }, label = { Text(t.label, maxLines = 1, softWrap = false) })
             }
         }
         Row(
@@ -280,12 +282,13 @@ private fun DropdownChip(label: String, selected: Boolean, options: List<Pair<Lo
     var open by remember { mutableStateOf(false) }
     Box {
         FilterChip(
-            selected = selected, onClick = { open = true }, label = { Text(label) },
+            selected = selected, onClick = { open = true },
+            label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 170.dp)) },
             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) },
         )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { (id, name) ->
-                DropdownMenuItem(text = { Text(name) }, onClick = { onPick(id); open = false })
+                DropdownMenuItem(text = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) }, onClick = { onPick(id); open = false })
             }
         }
     }

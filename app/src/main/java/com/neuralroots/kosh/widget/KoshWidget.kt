@@ -194,15 +194,15 @@ private fun palette(cfg: WidgetConfig): Palette {
         }
     }
     return Palette(
-        bg = c(0xFFFFFFFF, 0xFF14151C, a),
-        text = c(0xFF101828, 0xFFF2F4F7),
-        muted = c(0xFF667085, 0xFF98A2B3),
-        primary = c(0xFF5B5BD6, 0xFF8E8EF5),
-        onPrimary = c(0xFFFFFFFF, 0xFF15134D),
-        chip = c(0xFFEEF0FF, 0xFF262736),
-        chipText = c(0xFF3E3EB8, 0xFFC7C7FA),
-        expense = c(0xFFD92D20, 0xFFF97066),
-        income = c(0xFF079455, 0xFF47CD89),
+        bg = c(0xFFFAF7F1, 0xFF171412, a),
+        text = c(0xFF171412, 0xFFF1ECE3),
+        muted = c(0xFF6B6157, 0xFFA89E92),
+        primary = c(0xFFFF5B1F, 0xFFFF5B1F),
+        onPrimary = c(0xFF171412, 0xFF171412),
+        chip = c(0xFFE6DFD2, 0xFF2A2521),
+        chipText = c(0xFF171412, 0xFFF1ECE3),
+        expense = c(0xFFD9481A, 0xFFFF5B1F),
+        income = c(0xFF3F7A4C, 0xFF8FC79A),
     )
 }
 
@@ -281,6 +281,7 @@ private fun Header(ctx: Context, widgetId: Int, p: Palette) {
         Text(
             "Kosh",
             style = TextStyle(color = p.primary, fontSize = 13.sp, fontWeight = FontWeight.Bold),
+            maxLines = 1,
             modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity(MainActivity.intent(ctx))),
         )
         Image(
@@ -352,7 +353,7 @@ private fun CategoryChips(ctx: Context, widgetId: Int, cfg: WidgetConfig, cats: 
 @Composable
 private fun Recent(rows: List<TxnRow>, p: Palette) {
     Column(GlanceModifier.fillMaxWidth()) {
-        Text("Recent", style = TextStyle(color = p.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium))
+        Text("Recent", style = TextStyle(color = p.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium), maxLines = 1)
         rows.forEach { r ->
             val t = r.txn
             val (sign, color) = when (t.type) {
@@ -376,7 +377,7 @@ private fun Recent(rows: List<TxnRow>, p: Palette) {
                     maxLines = 1,
                     modifier = GlanceModifier.defaultWeight(),
                 )
-                Text(sign + Money.format(t.amount), style = TextStyle(color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+                Text(sign + Money.compact(t.amount), style = TextStyle(color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
             }
         }
     }
@@ -390,7 +391,7 @@ private fun Buttons(ctx: Context, widgetId: Int, cfg: WidgetConfig, p: Palette) 
                 .clickable(quickAdd(ctx, widgetId, cfg, TxType.EXPENSE)),
             contentAlignment = Alignment.Center,
         ) {
-            Text("+ Expense", style = TextStyle(color = p.onPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold))
+            Text("+ Expense", style = TextStyle(color = p.onPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold), maxLines = 1)
         }
         Spacer(GlanceModifier.width(6.dp))
         Box(
@@ -398,7 +399,7 @@ private fun Buttons(ctx: Context, widgetId: Int, cfg: WidgetConfig, p: Palette) 
                 .clickable(quickAdd(ctx, widgetId, cfg, TxType.INCOME)),
             contentAlignment = Alignment.Center,
         ) {
-            Text("+ Income", style = TextStyle(color = p.chipText, fontSize = 13.sp, fontWeight = FontWeight.Bold))
+            Text("+ Income", style = TextStyle(color = p.chipText, fontSize = 13.sp, fontWeight = FontWeight.Bold), maxLines = 1)
         }
         Spacer(GlanceModifier.width(6.dp))
         Box(

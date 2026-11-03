@@ -36,9 +36,10 @@ object CloudMapper {
     const val PEOPLE = "people"
     const val LOANS = "loans"
     const val LOAN_ENTRIES = "loan_entries"
+    const val RECURRING = "recurring"
 
     /** Restore order: a row's references must exist before it is applied. */
-    val applyOrder = listOf(ACCOUNTS, CATEGORIES, PEOPLE, EMIS, LOANS, TRANSACTIONS, EMI_PAYMENTS, LOAN_ENTRIES)
+    val applyOrder = listOf(ACCOUNTS, CATEGORIES, PEOPLE, EMIS, LOANS, TRANSACTIONS, EMI_PAYMENTS, LOAN_ENTRIES, RECURRING)
 
     fun collectionFor(syncEntity: String): String? = when (syncEntity) {
         SyncEntity.ACCOUNT -> ACCOUNTS
@@ -49,6 +50,7 @@ object CloudMapper {
         SyncEntity.PERSON -> PEOPLE
         SyncEntity.LOAN -> LOANS
         SyncEntity.LOAN_ENTRY -> LOAN_ENTRIES
+        SyncEntity.RECURRING -> RECURRING
         else -> null
     }
 
@@ -143,6 +145,17 @@ object CloudMapper {
                     "note" to it.note, "createdAt" to it.createdAt, "updatedAt" to it.createdAt,
                 )
             }
+            RECURRING -> db.recurringDao().byUuid(uuid)?.let {
+                mapOf(
+                    "name" to it.name, "type" to it.type.name, "amount" to it.amount,
+                    "accountUuid" to accU(it.accountId), "toAccountUuid" to accU(it.toAccountId),
+                    "categoryUuid" to catU(it.categoryId), "payee" to it.payee, "note" to it.note,
+                    "paymentMode" to it.paymentMode.name, "frequency" to it.frequency.name,
+                    "nextDate" to it.nextDate, "anchorDay" to it.anchorDay, "endDate" to it.endDate,
+                    "autoAdd" to it.autoAdd, "remindDaysBefore" to it.remindDaysBefore, "active" to it.active,
+                    "lastPostedDate" to it.lastPostedDate, "createdAt" to it.createdAt, "updatedAt" to it.updatedAt,
+                )
+            }
             else -> null
         }
     }
@@ -157,6 +170,7 @@ object CloudMapper {
         PEOPLE -> db.loanDao().allPeople().map { it.uuid to it.updatedAt }
         LOANS -> db.loanDao().allLoans().map { it.uuid to it.updatedAt }
         LOAN_ENTRIES -> db.loanDao().allEntries().map { it.uuid to it.createdAt }
+        RECURRING -> db.recurringDao().all().map { it.uuid to it.updatedAt }
         else -> emptyList()
     }
 
@@ -306,6 +320,25 @@ object CloudMapper {
                     createdAt = doc.long("createdAt"),
                 )
                 if (local == null) l.insertEntry(row) else l.updateEntry(row)
+            }
+            RECURRING -> {
+                val rd = db.recurringDao()
+                val local = rd.byUuid(uuid)
+                if (deleted) { local?.let { rd.delete(it) }; return ApplyResult.APPLIED }
+                if (local != null && local.updatedAt > ts) return ApplyResult.LOCAL_NEWER
+                val accountId = accId(doc.strOrNull("accountUuid")) ?: return ApplyResult.SKIPPED
+                val row = com.neuralroots.kosh.data.db.Recurring(
+                    id = local?.id ?: 0, uuid = uuid, name = doc.str("name"), type = doc.enum("type", TxType.EXPENSE),
+                    amount = doc.long("amount"), accountId = accountId, toAccountId = accId(doc.strOrNull("toAccountUuid")),
+                    categoryId = catId(doc.strOrNull("categoryUuid")), payee = doc.str("payee"), note = doc.str("note"),
+                    paymentMode = doc.enum("paymentMode", PaymentMode.AUTO_DEBIT),
+                    frequency = doc.enum("frequency", com.neuralroots.kosh.data.db.Frequency.MONTHLY),
+                    nextDate = doc.long("nextDate"), anchorDay = doc.int("anchorDay"), endDate = doc.longOrNull("endDate"),
+                    autoAdd = doc.bool("autoAdd"), remindDaysBefore = doc.int("remindDaysBefore"),
+                    active = doc.bool("active", true), lastPostedDate = doc.longOrNull("lastPostedDate"),
+                    createdAt = doc.long("createdAt"), updatedAt = ts,
+                )
+                if (local == null) rd.insert(row) else rd.update(row)
             }
             else -> return ApplyResult.SKIPPED
         }

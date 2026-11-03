@@ -1,5 +1,6 @@
 package com.neuralroots.kosh.widget
 
+import androidx.compose.foundation.layout.width
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
@@ -114,7 +115,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
                         SegmentedButton(
                             selected = cfg.defaultType == t, onClick = { cfg = cfg.copy(defaultType = t) },
                             shape = SegmentedButtonDefaults.itemShape(i, types.size),
-                        ) { Text(t.label) }
+                        ) { Text(t.label, maxLines = 1, softWrap = false) }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -133,7 +134,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
                             onClick = {
                                 cfg = cfg.copy(quickCategoryIds = if (sel) cfg.quickCategoryIds - c.id else cfg.quickCategoryIds + c.id)
                             },
-                            label = { Text("${c.emoji} ${c.name}") },
+                            label = { Text("${c.emoji} ${c.name}", maxLines = 1, softWrap = false) },
                         )
                     }
                 }
@@ -147,7 +148,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
                         SegmentedButton(
                             selected = cfg.balanceMode == m, onClick = { cfg = cfg.copy(balanceMode = m) },
                             shape = SegmentedButtonDefaults.itemShape(i, BalanceMode.entries.size),
-                        ) { Text(m.label) }
+                        ) { Text(m.label, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                     }
                 }
                 if (cfg.balanceMode == BalanceMode.ACCOUNT) {
@@ -171,7 +172,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
                         SegmentedButton(
                             selected = cfg.theme == m, onClick = { cfg = cfg.copy(theme = m) },
                             shape = SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size),
-                        ) { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                        ) { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }, maxLines = 1, softWrap = false) }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -183,7 +184,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
                         SegmentedButton(
                             selected = cfg.opacity == v, onClick = { cfg = cfg.copy(opacity = v) },
                             shape = SegmentedButtonDefaults.itemShape(i, opts.size),
-                        ) { Text(l) }
+                        ) { Text(l, maxLines = 1, softWrap = false) }
                     }
                 }
             }
@@ -199,7 +200,7 @@ private fun WidgetConfigScreen(initial: WidgetConfig, onCancel: () -> Unit, onSa
             }
 
             Button(onClick = { onSave(cfg) }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) {
-                Text("Save widget")
+                Text("Save widget", maxLines = 1)
             }
         }
     }
@@ -223,9 +224,10 @@ private fun SwitchRow(
 ) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(8.dp))
         Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }

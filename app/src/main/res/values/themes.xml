@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Kosh" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Kosh" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowBackground">#171412</item>
     </style>
 
     <!-- Transparent window: the quick-add sheet draws its own surface over the home screen. -->

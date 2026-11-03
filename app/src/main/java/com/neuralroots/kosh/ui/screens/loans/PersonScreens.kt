@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.loans
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -97,7 +99,7 @@ fun PersonDetailScreen(nav: NavController, id: Long) {
             ExtendedFloatingActionButton(
                 onClick = { nav.navigate(Routes.loanEdit(personId = id)) },
                 icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text("New loan") },
+                text = { Text("New loan", maxLines = 1, softWrap = false) },
             )
         },
     ) { pad ->
@@ -118,25 +120,30 @@ fun PersonDetailScreen(nav: NavController, id: Long) {
                                     b.net < 0 -> "You owe ${p.name}"
                                     else -> "All settled with ${p.name}"
                                 },
-                                style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.85f),
+                                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             )
-                            Text(Money.format(kotlin.math.abs(b.net)), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            com.neuralroots.kosh.ui.components.FitText(Money.format(kotlin.math.abs(b.net)), style = MaterialTheme.typography.headlineMedium, color = HeroText, modifier = Modifier.fillMaxWidth())
                         }
                         if (p.phone.isNotBlank()) FilledTonalIconButton(onClick = {
                             ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + p.phone)))
                         }) { Icon(Icons.Filled.Call, "Call") }
                     }
                     Spacer(Modifier.height(14.dp))
-                    Row(Modifier.fillMaxWidth()) {
-                        HeroStat("They owe", Money.format(b.owesMe), Modifier.weight(1f))
-                        HeroStat("You owe", Money.format(b.iOwe), Modifier.weight(1f))
-                        HeroStat("Open", b.openLoans.toString(), Modifier.weight(0.6f))
+                    // The split is only informative when money flows both ways; otherwise it repeats the net.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (b.owesMe > 0 && b.iOwe > 0) {
+                            HeroStat("They owe", Money.format(b.owesMe), Modifier.weight(1f))
+                            HeroStat("You owe", Money.format(b.iOwe), Modifier.weight(1f))
+                        }
+                        HeroStat("Open loans", b.openLoans.toString(), Modifier.weight(0.7f))
                     }
                     if (p.phone.isNotBlank() || p.note.isNotBlank()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
                             listOf(p.phone, p.note).filter { it.isNotBlank() }.joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodySmall, color = HeroText.copy(alpha = 0.8f),
+                            maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -203,7 +210,7 @@ fun PersonEditScreen(nav: NavController, id: Long?) {
             OutlinedTextField(
                 value = vm.phone, onValueChange = { vm.phone = it }, label = { Text("Phone (optional)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                supportingText = { Text("Used for call, SMS and WhatsApp reminders") },
+                supportingText = { Text("Used for call, SMS and WhatsApp reminders", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(

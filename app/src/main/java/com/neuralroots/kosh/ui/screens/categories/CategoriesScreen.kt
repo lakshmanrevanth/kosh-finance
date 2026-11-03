@@ -1,5 +1,6 @@
 package com.neuralroots.kosh.ui.screens.categories
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -94,8 +95,8 @@ fun CategoriesScreen(nav: NavController) {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Expense") })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Income") })
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Expense", maxLines = 1) })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Income", maxLines = 1) })
             }
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
@@ -115,10 +116,11 @@ private fun CategoryRow(c: Category, onClick: () -> Unit) {
             EmojiBubble(c.emoji, Color(c.color))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(c.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(c.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (c.monthlyBudget > 0) Text(
                     "Budget ${Money.format(c.monthlyBudget)} / month",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
             Icon(Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -206,7 +208,7 @@ fun CategoryEditScreen(nav: NavController, id: Long?, kind: CategoryKind) {
             }
             OutlinedTextField(
                 value = vm.emoji, onValueChange = { s -> vm.emoji = s.take(8) },
-                label = { Text("Or type any emoji") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Or type any emoji", maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             Text("Colour", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ColorPalette(vm.color) { vm.color = it }

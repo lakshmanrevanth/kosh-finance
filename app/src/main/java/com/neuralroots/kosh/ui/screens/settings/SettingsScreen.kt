@@ -18,7 +18,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Savings
+import com.neuralroots.kosh.budget.DailyLogScheduler
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Widgets
@@ -77,7 +80,7 @@ fun SettingsScreen(nav: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Section("Appearance") {
-                Text("Theme", style = MaterialTheme.typography.labelLarge)
+                Text("Theme", style = MaterialTheme.typography.labelLarge, maxLines = 1)
                 Spacer(Modifier.height(8.dp))
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { i, m ->
@@ -85,7 +88,7 @@ fun SettingsScreen(nav: NavController) {
                             selected = s.themeMode == m,
                             onClick = { scope.launch { c.settings.setTheme(m) } },
                             shape = SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size),
-                        ) { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                        ) { Text(m.name.lowercase().replaceFirstChar { it.uppercase() }, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                     }
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -109,7 +112,7 @@ fun SettingsScreen(nav: NavController) {
                 Spacer(Modifier.height(12.dp))
                 val none = Account(id = -1, name = "First account")
                 SelectField(
-                    label = "Default account for new entries",
+                    label = "Default account",
                     options = listOf(none) + accounts,
                     selected = accounts.firstOrNull { it.id == s.defaultAccountId } ?: none,
                     labelOf = { it.name },
@@ -136,7 +139,11 @@ fun SettingsScreen(nav: NavController) {
                 }
             }
 
-            Section("Reminders") {
+            Section("Auto-detect from SMS") {
+                com.neuralroots.kosh.sms.SmsSettingsSection()
+            }
+
+            Section("Notifications") {
                 SwitchRow("EMI & loan reminders", "Notify before due dates and auto-record auto-pay EMIs", s.remindersEnabled) { on ->
                     scope.launch {
                         c.settings.setReminders(on)
@@ -158,20 +165,36 @@ fun SettingsScreen(nav: NavController) {
                         },
                     )
                 }
-            }
-
-            Section("Data") {
-                val syncSub = when {
-                    !s.syncConfigured -> "Not set up"
-                    s.lastSyncError.isNotEmpty() -> "Error: ${s.lastSyncError}"
-                    s.lastSyncAt > 0 -> "Connected · last synced ${Dates.formatDayShort(s.lastSyncAt)}, ${Dates.formatTime(s.lastSyncAt)}"
-                    else -> "Connected"
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SwitchRow("Budget alerts", "Notify at 80% and 100% of your monthly and category budgets", s.budgetAlerts) { on ->
+                    scope.launch { c.settings.setBudgetAlerts(on) }
                 }
-                NavRow(Icons.Filled.CloudSync, "Google Sheets sync", syncSub) { nav.navigate(Routes.SHEETS_SYNC) }
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                NavRow(Icons.Filled.FileDownload, "Export to Excel", "Download .xlsx or .csv") { nav.navigate(Routes.EXPORT) }
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                NavRow(Icons.Filled.Category, "Categories", "Add, edit and set budgets") { nav.navigate(Routes.CATEGORIES) }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SwitchRow(
+                    "Daily logging reminder",
+                    "An evening nudge with today's total, so nothing gets missed",
+                    s.dailyLogReminder,
+                ) { on ->
+                    scope.launch {
+                        c.settings.setDailyLog(on, s.dailyLogHour)
+                        DailyLogScheduler.schedule(ctx, replace = true)
+                    }
+                }
+                if (s.dailyLogReminder) {
+                    Spacer(Modifier.height(12.dp))
+                    SelectField(
+                        label = "Remind me at",
+                        options = (12..23).toList(),
+                        selected = s.dailyLogHour,
+                        labelOf = { h -> Dates.formatTime(Dates.toMs(Dates.today().atTime(h, 0))) },
+                        onSelect = { h ->
+                            scope.launch {
+                                c.settings.setDailyLog(true, h)
+                                DailyLogScheduler.schedule(ctx, replace = true)
+                            }
+                        },
+                    )
+                }
             }
 
             Section("Home-screen widget") {
@@ -179,7 +202,8 @@ fun SettingsScreen(nav: NavController) {
                     Icon(Icons.Filled.Widgets, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        "Long-press your home screen → Widgets → Kosh. Tap a category or \"+ Expense\" on the widget " +
+                        modifier = Modifier.weight(1f),
+                        text = "Long-press your home screen → Widgets → Kosh. Tap a category or \"+ Expense\" on the widget " +
                             "to add an entry without opening the app. Use the widget's settings icon to choose its categories, account and look.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -193,13 +217,13 @@ fun SettingsScreen(nav: NavController) {
                     } else {
                         Toast.makeText(ctx, "Your launcher doesn't support this — add it from the widgets list", Toast.LENGTH_LONG).show()
                     }
-                }) { Text("Add widget to home screen") }
+                }) { Text("Add widget to home screen", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
             }
 
             Section("About") {
-                Text("Kosh v$version", style = MaterialTheme.typography.titleSmall)
+                Text("Kosh v$version", style = MaterialTheme.typography.titleSmall, maxLines = 1)
                 Text(
-                    "Personal finance tracker — expenses, EMIs, loans and balances. Your data stays on your phone and in your own Google Sheet.",
+                    "Personal finance tracker — expenses, budgets, bills, EMIs, loans and net worth. Backed up to your account, optionally mirrored to your own Google Sheet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -214,7 +238,7 @@ internal fun Section(title: String, content: @Composable () -> Unit) {
     Column {
         Text(
             title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         KoshCard(Modifier.fillMaxWidth()) { content() }
     }
@@ -230,26 +254,10 @@ internal fun SwitchRow(
 ) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(12.dp))
         Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
-    }
-}
-
-@Composable
-private fun NavRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

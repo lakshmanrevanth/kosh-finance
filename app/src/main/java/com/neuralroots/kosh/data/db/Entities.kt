@@ -248,6 +248,66 @@ data class CloudOutboxItem(
     val createdAt: Long = nowMs(),
 )
 
+enum class Frequency(val label: String, val months: Int) {
+    WEEKLY("Weekly", 0),
+    MONTHLY("Monthly", 1),
+    QUARTERLY("Every 3 months", 3),
+    HALF_YEARLY("Every 6 months", 6),
+    YEARLY("Yearly", 12),
+}
+
+/** A repeating bill, subscription, SIP, salary or transfer. */
+@Entity(tableName = "recurring", indices = [Index(value = ["uuid"], unique = true), Index("nextDate")])
+data class Recurring(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val uuid: String = newUuid(),
+    val name: String,
+    val type: TxType = TxType.EXPENSE,
+    val amount: Long,
+    val accountId: Long,
+    val toAccountId: Long? = null,
+    val categoryId: Long? = null,
+    val payee: String = "",
+    val note: String = "",
+    val paymentMode: PaymentMode = PaymentMode.AUTO_DEBIT,
+    val frequency: Frequency = Frequency.MONTHLY,
+    /** Next occurrence (the date its transaction will carry). */
+    val nextDate: Long,
+    /** Day-of-month kept for monthly-style rules (31st stays 31st after February). 0 = from nextDate. */
+    val anchorDay: Int = 0,
+    val endDate: Long? = null,
+    /** true = add the transaction automatically on the date; false = remind and let me confirm. */
+    val autoAdd: Boolean = false,
+    val remindDaysBefore: Int = 2,
+    val active: Boolean = true,
+    val lastPostedDate: Long? = null,
+    val createdAt: Long = nowMs(),
+    val updatedAt: Long = nowMs(),
+)
+
+enum class DetectStatus { PENDING, ADDED, IGNORED }
+
+/** A transaction auto-detected from a bank / UPI SMS, waiting for review. Local only (never synced). */
+@Entity(tableName = "detected", indices = [Index(value = ["fingerprint"], unique = true), Index("status")])
+data class DetectedTxn(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Dedupe key: sender + amount + ref/time bucket. */
+    val fingerprint: String,
+    val sender: String,
+    val body: String,
+    val amount: Long,
+    /** true = money left the account (debit); false = credit. */
+    val isDebit: Boolean,
+    val merchant: String = "",
+    val accountLast4: String = "",
+    val refNo: String = "",
+    val mode: PaymentMode = PaymentMode.UPI,
+    val date: Long,
+    val status: DetectStatus = DetectStatus.PENDING,
+    val txnId: Long? = null,
+    val createdAt: Long = nowMs(),
+)
+
 object SyncEntity {
     const val TXN = "Transactions"
     const val ACCOUNT = "Accounts"
@@ -257,6 +317,8 @@ object SyncEntity {
     const val PERSON = "People"
     const val LOAN = "Loans"
     const val LOAN_ENTRY = "Loan_Entries"
+    /** Cloud-only (not sent to Google Sheets). */
+    const val RECURRING = "Recurring"
     const val OP_UPSERT = "upsert"
     const val OP_DELETE = "delete"
 }
@@ -301,4 +363,22 @@ data class LoanWithStats(
 ) {
     val totalLent: Long get() = loan.principal + topups
     val outstanding: Long get() = (loan.principal + topups - repaid).coerceAtLeast(0)
+}
+
+/** Assets minus liabilities, for the net-worth card. */
+data class NetWorth(
+    /** Positive account balances (bank, cash, wallets, investments). */
+    val accountAssets: Long = 0,
+    /** Money others owe you (open LENT loans). */
+    val lent: Long = 0,
+    /** Negative account balances, e.g. credit-card dues (as a positive number). */
+    val cardDues: Long = 0,
+    /** Money you owe people (open BORROWED loans). */
+    val borrowed: Long = 0,
+    /** Principal still outstanding on active EMIs. */
+    val emiOutstanding: Long = 0,
+) {
+    val assets: Long get() = accountAssets + lent
+    val liabilities: Long get() = cardDues + borrowed + emiOutstanding
+    val net: Long get() = assets - liabilities
 }

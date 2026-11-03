@@ -1,5 +1,7 @@
 package com.neuralroots.kosh.ui.screens.auth
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -138,16 +140,26 @@ private fun AuthScreen() {
                 .statusBarsPadding().padding(horizontal = 28.dp, vertical = 36.dp),
         ) {
             Column {
-                Box(
-                    Modifier.size(64.dp).background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(20.dp)),
-                    contentAlignment = Alignment.Center,
-                ) { Text("₹", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold) }
-                Spacer(Modifier.height(20.dp))
-                Text("Kosh", color = Color.White, style = MaterialTheme.typography.displaySmall)
-                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    com.neuralroots.kosh.ui.components.EmberDot(5.dp)
+                    Spacer(Modifier.width(8.dp))
+                    com.neuralroots.kosh.ui.components.Eyebrow("Kosh · personal ledger", number = 1, color = HeroText.copy(alpha = 0.6f))
+                }
+                Spacer(Modifier.height(28.dp))
+                com.neuralroots.kosh.ui.components.SerifHeadline(
+                    "Every rupee.", "Accounted for.",
+                    style = MaterialTheme.typography.displayMedium, color = HeroText,
+                )
+                Spacer(Modifier.height(14.dp))
                 Text(
-                    "Every rupee tracked. Every record safely backed up to your account.",
-                    color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyLarge,
+                    "Track spending, EMIs, loans and every bank balance. Backed up privately to your account.",
+                    color = HeroText.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(16.dp))
+                com.neuralroots.kosh.ui.components.FitText(
+                    "NO ADS  ✺  PRIVATE  ✺  OFFLINE-FIRST",
+                    color = HeroText.copy(alpha = 0.45f), style = com.neuralroots.kosh.ui.theme.MonoLabel,
+                    modifier = Modifier.fillMaxWidth(), minScale = 0.7f,
                 )
             }
         }
@@ -159,7 +171,7 @@ private fun AuthScreen() {
                         selected = mode == i,
                         onClick = { mode = i; error = null; info = null },
                         shape = SegmentedButtonDefaults.itemShape(i, 2),
-                    ) { Text(label) }
+                    ) { Text(label, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 }
             }
             AnimatedVisibility(mode == 1) {
@@ -190,15 +202,15 @@ private fun AuthScreen() {
                 keyboardActions = KeyboardActions(onDone = { submit() }),
                 modifier = Modifier.fillMaxWidth(),
             )
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-            info?.let { Text(it, color = k.income, style = MaterialTheme.typography.bodyMedium) }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+            info?.let { Text(it, color = k.income, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
 
             Button(
                 onClick = { submit() }, enabled = !busy,
                 modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp),
             ) {
                 if (busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                else Text(if (mode == 0) "Sign in" else "Create account", style = MaterialTheme.typography.titleMedium)
+                else Text(if (mode == 0) "Sign in" else "Create account", style = MaterialTheme.typography.titleMedium, maxLines = 1)
             }
             if (mode == 0) TextButton(
                 onClick = {
@@ -213,12 +225,12 @@ private fun AuthScreen() {
                     }
                 },
                 modifier = Modifier.align(Alignment.End),
-            ) { Text("Forgot password?") }
+            ) { Text("Forgot password?", maxLines = 1) }
 
             if (googleOk) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(Modifier.weight(1f))
-                    Text("  or  ", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text("  or  ", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     HorizontalDivider(Modifier.weight(1f))
                 }
                 OutlinedButton(
@@ -234,7 +246,7 @@ private fun AuthScreen() {
                 ) {
                     GoogleMark()
                     Spacer(Modifier.width(12.dp))
-                    Text("Continue with Google", style = MaterialTheme.typography.titleMedium)
+                    Text("Continue with Google", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
 
@@ -244,7 +256,8 @@ private fun AuthScreen() {
                     Icon(Icons.Filled.CloudDone, null, tint = k.income)
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        "Your data is stored privately under your account. Only you can read it, and it's restored automatically when you sign in on a new phone.",
+                        modifier = Modifier.weight(1f),
+                        text = "Your data is stored privately under your account. Only you can read it, and it's restored automatically when you sign in on a new phone.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -252,7 +265,7 @@ private fun AuthScreen() {
             TextButton(
                 onClick = { scope.launch { ctx.container.settings.setCloudSkipped(true) } },
                 modifier = Modifier.align(Alignment.CenterHorizontally).navigationBarsPadding(),
-            ) { Text("Continue without an account", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            ) { Text("Continue without an account", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
         }
     }
 }
@@ -260,7 +273,7 @@ private fun AuthScreen() {
 @Composable
 private fun GoogleMark() {
     Box(
-        Modifier.size(24.dp).background(Color.White, CircleShape),
+        Modifier.size(24.dp).background(HeroText, CircleShape),
         contentAlignment = Alignment.Center,
     ) { Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 16.sp) }
 }
@@ -285,7 +298,7 @@ private fun RestoringScreen(user: FirebaseUser) {
         if (error == null) {
             CircularProgressIndicator()
             Spacer(Modifier.height(24.dp))
-            Text("Setting up your account", style = MaterialTheme.typography.titleLarge)
+            Text("Setting up your account", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, maxLines = 2)
             Spacer(Modifier.height(8.dp))
             Text(
                 "Restoring and backing up your data for ${user.email ?: user.displayName ?: "you"}…",
@@ -294,12 +307,12 @@ private fun RestoringScreen(user: FirebaseUser) {
         } else {
             Text("☁️", fontSize = 48.sp)
             Spacer(Modifier.height(16.dp))
-            Text("Couldn't reach your backup", style = MaterialTheme.typography.titleLarge)
+            Text("Couldn't reach your backup", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, maxLines = 2)
             Spacer(Modifier.height(8.dp))
             Text(error!!, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(24.dp))
-            Button(onClick = { attempt++ }) { Text("Try again") }
-            TextButton(onClick = { scope.launch { ctx.container.cloud.signOut(keepLocal = true) } }) { Text("Sign out") }
+            Button(onClick = { attempt++ }) { Text("Try again", maxLines = 1) }
+            TextButton(onClick = { scope.launch { ctx.container.cloud.signOut(keepLocal = true) } }) { Text("Sign out", maxLines = 1) }
         }
     }
 }

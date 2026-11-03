@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.emi
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -139,7 +142,7 @@ fun EmiDetailScreen(nav: NavController, id: Long) {
                 if (n != null && !prog.isClosed) Button(
                     onClick = { payInstallment = n },
                     modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 4.dp),
-                ) { Text("Mark installment #$n as paid") }
+                ) { Text("Mark installment #$n as paid", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
             }
             item { StatsGrid(prog) }
             item { SectionHeader("Repayment schedule") }
@@ -173,7 +176,7 @@ fun EmiDetailScreen(nav: NavController, id: Long) {
     undoPayment?.let { pay ->
         AlertDialog(
             onDismissRequest = { undoPayment = null },
-            title = { Text("Installment #${pay.installmentNo}") },
+            title = { Text("Installment #${pay.installmentNo}", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             text = {
                 Text(
                     "Paid ${Money.format(pay.amount)} on ${Dates.formatDay(pay.paidDate)}." +
@@ -182,10 +185,10 @@ fun EmiDetailScreen(nav: NavController, id: Long) {
             },
             confirmButton = {
                 TextButton(onClick = { vm.undo(pay.id); undoPayment = null }) {
-                    Text("Undo payment", color = MaterialTheme.colorScheme.error)
+                    Text("Undo payment", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                 }
             },
-            dismissButton = { TextButton(onClick = { undoPayment = null }) { Text("Close") } },
+            dismissButton = { TextButton(onClick = { undoPayment = null }) { Text("Close", maxLines = 1, softWrap = false) } },
         )
     }
 
@@ -203,39 +206,40 @@ private fun DetailHero(p: EmiProgress) {
     HeroCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(e.lender.ifBlank { "EMI" }, style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
+                Text(e.lender.ifBlank { "EMI" }, style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.8f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
-                Text(Money.format(e.emiAmount), style = MaterialTheme.typography.headlineMedium)
-                Text("per month", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.75f))
+                com.neuralroots.kosh.ui.components.FitText(Money.format(e.emiAmount), style = MaterialTheme.typography.headlineMedium, color = HeroText, modifier = Modifier.fillMaxWidth())
+                Text("per month", style = MaterialTheme.typography.labelMedium, color = HeroText.copy(alpha = 0.75f))
                 Spacer(Modifier.height(14.dp))
                 val due = p.nextDueDate
                 if (p.isClosed) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.CheckCircle, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Fully paid", style = MaterialTheme.typography.titleSmall)
+                        Text("Fully paid", style = MaterialTheme.typography.titleSmall, maxLines = 1)
                     }
                 } else if (due != null) {
-                    Text("Next due", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.75f))
-                    Text(Dates.formatDay(due), style = MaterialTheme.typography.titleMedium)
+                    Text("Next due", style = MaterialTheme.typography.labelMedium, color = HeroText.copy(alpha = 0.75f))
+                    Text(Dates.formatDay(due), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(
                         Dates.relativeDue(due) + if (p.overdueCount > 1) " · ${p.overdueCount} overdue" else "",
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (p.isOverdue) Color(0xFFFFD1CC) else Color.White.copy(alpha = 0.85f),
+                        color = if (p.isOverdue) Color(0xFFFFD1CC) else HeroText.copy(alpha = 0.85f),
+                        maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
             }
             DonutChart(
                 slices = listOf(
-                    ChartSlice(p.paidCount.toFloat(), Color.White),
-                    ChartSlice(p.remainingCount.toFloat(), Color.White.copy(alpha = 0.18f)),
+                    ChartSlice(p.paidCount.toFloat(), HeroText),
+                    ChartSlice(p.remainingCount.toFloat(), HeroText.copy(alpha = 0.18f)),
                 ),
-                modifier = Modifier.size(116.dp),
+                modifier = Modifier.padding(start = 8.dp).size(100.dp),
                 thickness = 12.dp,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("${p.paidCount}/${e.tenureMonths}", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                    Text("paid", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.75f))
+                    com.neuralroots.kosh.ui.components.FitText("${p.paidCount}/${e.tenureMonths}", style = MaterialTheme.typography.titleLarge, color = HeroText, modifier = Modifier.widthIn(max = 72.dp))
+                    Text("paid", style = MaterialTheme.typography.labelSmall, color = HeroText.copy(alpha = 0.75f))
                 }
             }
         }
@@ -283,16 +287,16 @@ private fun ScheduleItem(r: ScheduleRow, st: RowStatus, showSplit: Boolean, paid
     ) {
         Text(
             "#${r.installmentNo}", style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(44.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(44.dp), maxLines = 1, softWrap = false,
         )
         Column(Modifier.weight(1f)) {
-            Text(Dates.formatDay(r.dueDate), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(Dates.formatDay(r.dueDate), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             val sub = when {
                 paid != null -> "Paid ${Money.format(paid.amount)} on ${Dates.formatDayShort(paid.paidDate)}"
                 showSplit -> "Principal ${Money.compact(r.principal)} · Interest ${Money.compact(r.interest)} · Bal ${Money.compact(r.balanceAfter)}"
                 else -> Money.format(r.emi)
             }
-            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
         StatusChip(st.label, color)

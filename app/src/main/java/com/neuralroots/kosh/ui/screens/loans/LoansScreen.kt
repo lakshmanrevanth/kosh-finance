@@ -2,6 +2,8 @@
 
 package com.neuralroots.kosh.ui.screens.loans
 
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -123,7 +126,7 @@ fun LoansScreen(nav: NavController) {
             ExtendedFloatingActionButton(
                 onClick = { nav.navigate(Routes.loanEdit()) },
                 icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text("Add loan") },
+                text = { Text("Add loan", maxLines = 1, softWrap = false) },
             )
         },
     ) { pad ->
@@ -140,8 +143,6 @@ fun LoansScreen(nav: NavController) {
                         emoji = "🤝",
                         title = "Track money between you and others",
                         subtitle = "Record money you lent to friends or borrowed from someone, then log repayments until it's settled.",
-                        action = "Add a loan",
-                        onAction = { nav.navigate(Routes.loanEdit()) },
                     )
                 }
                 return@LazyColumn
@@ -149,7 +150,7 @@ fun LoansScreen(nav: NavController) {
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     listOf("People", "Loans").forEachIndexed { i, label ->
-                        SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label) }
+                        SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) }
                     }
                 }
             }
@@ -171,7 +172,7 @@ fun LoansScreen(nav: NavController) {
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Settled (${settled.size})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            Text("Settled (${settled.size})", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Icon(if (showSettled) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
                         }
                     }
@@ -187,18 +188,18 @@ fun LoansScreen(nav: NavController) {
 @Composable
 private fun LoansHero(s: LoansState) {
     HeroCard {
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("They owe you", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
-                Text(Money.format(s.owedToMe), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("They owe you", style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                com.neuralroots.kosh.ui.components.FitText(Money.format(s.owedToMe), style = MaterialTheme.typography.headlineSmall, color = HeroText)
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                Text("You owe", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
-                Text(Money.format(s.iOwe), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("You owe", style = MaterialTheme.typography.labelLarge, color = HeroText.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                com.neuralroots.kosh.ui.components.FitText(Money.format(s.iOwe), style = MaterialTheme.typography.headlineSmall, color = HeroText, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
         }
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             HeroStat("Net position", Money.formatSigned(s.owedToMe - s.iOwe), Modifier.weight(1f))
             HeroStat("Open loans", s.open.size.toString(), Modifier.weight(1f))
         }
@@ -222,11 +223,13 @@ fun PersonRow(b: PersonBalance, onClick: () -> Unit) {
                 Text(
                     personSummary(b) + if (b.openLoans > 0) " · ${b.openLoans} open" else "",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
+            Spacer(Modifier.width(8.dp))
+            com.neuralroots.kosh.ui.components.FitText(
                 if (b.net == 0L) "—" else Money.format(kotlin.math.abs(b.net)),
-                style = MaterialTheme.typography.titleMedium, color = color,
+                style = MaterialTheme.typography.titleMedium, color = color, modifier = Modifier.widthIn(max = 140.dp),
             )
         }
     }
@@ -247,11 +250,13 @@ fun LoanCard(l: LoanWithStats, onClick: () -> Unit) {
                 Text(
                     (if (lent) "You lent" else "You borrowed") + " · " + Dates.formatDay(l.loan.startDate),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(Money.format(l.outstanding), style = MaterialTheme.typography.titleMedium, color = if (settled) MaterialTheme.colorScheme.onSurfaceVariant else color)
-                Text(if (settled) "settled" else l.loan.direction.short.lowercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Column(Modifier.widthIn(max = 140.dp), horizontalAlignment = Alignment.End) {
+                com.neuralroots.kosh.ui.components.FitText(Money.format(l.outstanding), style = MaterialTheme.typography.titleMedium, color = if (settled) MaterialTheme.colorScheme.onSurfaceVariant else color, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text(if (settled) "settled" else l.loan.direction.short.lowercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -262,7 +267,9 @@ fun LoanCard(l: LoanWithStats, onClick: () -> Unit) {
             Text(
                 "${Money.format(l.repaid)} of ${Money.format(l.totalLent)} repaid",
                 style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f),
+                maxLines = 2, overflow = TextOverflow.Ellipsis,
             )
+            Spacer(Modifier.width(8.dp))
             val due = l.loan.dueDate
             if (!settled && due != null) StatusChip(Dates.relativeDue(due), dueColor(due))
             else if (settled) StatusChip("Settled", k.income)

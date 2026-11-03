@@ -26,8 +26,15 @@ import com.neuralroots.kosh.data.db.TxnRow
 import com.neuralroots.kosh.data.db.nowMs
 import com.neuralroots.kosh.util.EmiMath
 import com.neuralroots.kosh.util.EmiProgress
+import com.neuralroots.kosh.data.db.DetectStatus
+import com.neuralroots.kosh.data.db.DetectedTxn
+import com.neuralroots.kosh.data.db.Frequency
+import com.neuralroots.kosh.data.db.NetWorth
+import com.neuralroots.kosh.data.db.Recurring
+import com.neuralroots.kosh.util.Dates
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /** Side effects run after every successful write (sync kick + widget refresh). */
 fun interface RepoEffects {
@@ -51,9 +58,11 @@ class FinanceRepository(
     val loanDao = db.loanDao()
     val outboxDao = db.outboxDao()
     val cloudOutboxDao = db.cloudOutboxDao()
+    val recurringDao = db.recurringDao()
+    val detectedDao = db.detectedDao()
 
     private suspend fun queue(entity: String, uuid: String, op: String = SyncEntity.OP_UPSERT) {
-        outboxDao.put(OutboxItem(entity = entity, uuid = uuid, op = op))
+        if (entity != SyncEntity.RECURRING) outboxDao.put(OutboxItem(entity = entity, uuid = uuid, op = op))
         CloudMapper.collectionFor(entity)?.let { col ->
             cloudOutboxDao.put(CloudOutboxItem(collection = col, uuid = uuid, deleted = op == SyncEntity.OP_DELETE))
         }
@@ -443,6 +452,172 @@ class FinanceRepository(
         queue(SyncEntity.LOAN, s.loan.uuid)
     }
 
+    // ---------------------------------------------------------------- Recurring bills / income
+
+    fun observeRecurring() = recurringDao.observeAll()
+    fun observeRecurring(id: Long) = recurringDao.observe(id)
+
+    /** Active rules whose next date is within [days] days (or overdue), soonest first. */
+    fun observeUpcomingRecurring(days: Int = 30): Flow<List<Recurring>> =
+        recurringDao.observeAll().map { list ->
+            val until = Dates.endOfDay(System.currentTimeMillis()) + days * 86_400_000L
+            list.filter { it.active && it.nextDate <= until }.sortedBy { it.nextDate }
+        }
+
+    suspend fun saveRecurring(r: Recurring): Long = write {
+        val anchored = if (r.anchorDay == 0 && r.frequency != Frequency.WEEKLY)
+            r.copy(anchorDay = Dates.toLocalDate(r.nextDate).dayOfMonth) else r
+        val id = if (anchored.id == 0L) recurringDao.insert(anchored) else {
+            recurringDao.update(anchored.copy(updatedAt = nowMs())); anchored.id
+        }
+        queue(SyncEntity.RECURRING, anchored.uuid)
+        id
+    }
+
+    suspend fun deleteRecurring(id: Long) = write {
+        val r = recurringDao.get(id) ?: return@write
+        recurringDao.delete(r)
+        queue(SyncEntity.RECURRING, r.uuid, SyncEntity.OP_DELETE)
+    }
+
+    /** The occurrence after [from] for this rule. */
+    fun nextOccurrence(r: Recurring, from: Long = r.nextDate): Long = when (r.frequency) {
+        Frequency.WEEKLY -> from + 7 * 86_400_000L
+        else -> Dates.plusMonths(from, r.frequency.months, if (r.anchorDay > 0) r.anchorDay else Dates.toLocalDate(from).dayOfMonth)
+    }
+
+    /**
+     * Records the current occurrence as a transaction (dated [date], default the rule's next date)
+     * and moves the rule to its next occurrence. Returns the new transaction id.
+     */
+    suspend fun postRecurring(id: Long, amount: Long? = null, date: Long? = null): Long? = write {
+        val r = recurringDao.get(id) ?: return@write null
+        val t = Txn(
+            type = r.type, amount = amount ?: r.amount, accountId = r.accountId,
+            toAccountId = if (r.type == TxType.TRANSFER) r.toAccountId else null,
+            categoryId = if (r.type == TxType.TRANSFER) null else r.categoryId,
+            payee = r.payee.ifBlank { r.name }, note = r.note.ifBlank { r.name },
+            date = Dates.withCurrentTime(date ?: r.nextDate, Dates.toMs(Dates.today().atTime(9, 0))),
+            paymentMode = r.paymentMode,
+        )
+        val tid = txnDao.insert(t)
+        queue(SyncEntity.TXN, t.uuid)
+        advance(r)
+        tid
+    }
+
+    /** Skips the current occurrence without recording anything. */
+    suspend fun skipRecurring(id: Long) = write {
+        recurringDao.get(id)?.let { advance(it) }
+    }
+
+    private suspend fun advance(r: Recurring) {
+        val next = nextOccurrence(r)
+        val ended = r.endDate != null && next > r.endDate
+        val u = r.copy(nextDate = next, lastPostedDate = r.nextDate, active = r.active && !ended, updatedAt = nowMs())
+        recurringDao.update(u)
+        queue(SyncEntity.RECURRING, u.uuid)
+    }
+
+    /**
+     * Posts every due occurrence of auto-add rules (catching up missed days, max 24 per rule).
+     * Returns the rules that were posted with how many occurrences.
+     */
+    suspend fun processDueRecurring(now: Long = System.currentTimeMillis()): List<Pair<Recurring, Int>> {
+        val out = ArrayList<Pair<Recurring, Int>>()
+        val until = Dates.endOfDay(now)
+        for (r in recurringDao.dueBy(until)) {
+            if (!r.autoAdd) continue
+            var n = 0
+            var cur = recurringDao.get(r.id) ?: continue
+            while (cur.active && cur.nextDate <= until && n < 24) {
+                postRecurring(cur.id)
+                n++
+                cur = recurringDao.get(r.id) ?: break
+            }
+            if (n > 0) out += r to n
+        }
+        return out
+    }
+
+    // ---------------------------------------------------------------- SMS-detected transactions
+
+    fun observePendingDetected() = detectedDao.observePending()
+    fun observePendingDetectedCount() = detectedDao.observePendingCount()
+
+    /** Stores a detection. Returns its id, or null if it was already known. */
+    suspend fun addDetected(d: DetectedTxn): Long? = detectedDao.insert(d).takeIf { it > 0 }
+
+    /** True if a transaction with the same amount already exists within ±1 day (likely logged by hand). */
+    suspend fun looksAlreadyLogged(d: DetectedTxn): Boolean =
+        txnDao.countSimilar(d.amount, d.date - 86_400_000L, d.date + 86_400_000L) > 0
+
+    /** Category suggestion for a merchant, learned from past transactions. */
+    suspend fun suggestCategory(payee: String, type: TxType): Long? =
+        if (payee.isBlank()) null else txnDao.lastCategoryForPayee(payee.trim(), type)
+
+    /** Account whose last 4 digits match, if any. */
+    suspend fun accountForLast4(last4: String): Account? =
+        if (last4.length < 3) null else accountDao.active().firstOrNull { it.last4.isNotEmpty() && (it.last4.endsWith(last4) || last4.endsWith(it.last4)) }
+
+    /** Turns a detection into a real transaction. */
+    suspend fun acceptDetected(
+        id: Long,
+        accountId: Long,
+        categoryId: Long?,
+        payee: String,
+        note: String = "",
+        amount: Long? = null,
+    ): Long? {
+        val d = detectedDao.get(id) ?: return null
+        if (d.status == DetectStatus.ADDED) return d.txnId
+        val tid = saveTxn(
+            Txn(
+                type = if (d.isDebit) TxType.EXPENSE else TxType.INCOME,
+                amount = amount ?: d.amount, accountId = accountId, categoryId = categoryId,
+                payee = payee.trim(), note = note.trim(), date = d.date, paymentMode = d.mode,
+            )
+        )
+        detectedDao.update(d.copy(status = DetectStatus.ADDED, txnId = tid))
+        return tid
+    }
+
+    suspend fun ignoreDetected(id: Long) {
+        detectedDao.get(id)?.let { detectedDao.update(it.copy(status = DetectStatus.IGNORED)) }
+    }
+
+    suspend fun ignoreAllDetected() = detectedDao.ignoreAllPending()
+
+    // ---------------------------------------------------------------- Balance & net worth
+
+    /**
+     * Makes the app's balance match the real one by moving the account's opening balance,
+     * so reports and spending totals are not polluted by an adjustment entry.
+     */
+    suspend fun adjustBalance(accountId: Long, actualBalance: Long) = write {
+        val current = accountDao.withBalance().firstOrNull { it.account.id == accountId } ?: return@write
+        val diff = actualBalance - current.balance
+        if (diff == 0L) return@write
+        val a = current.account
+        accountDao.update(a.copy(openingBalance = a.openingBalance + diff, updatedAt = nowMs()))
+        queue(SyncEntity.ACCOUNT, a.uuid)
+    }
+
+    /** Assets (accounts, money lent) minus liabilities (card dues, money borrowed, EMI principal left). */
+    fun observeNetWorth(): Flow<NetWorth> =
+        combine(accountDao.observeWithBalance(), loanDao.observeLoans(), observeEmiProgress()) { accts, loans, emis ->
+            val inTotal = accts.filter { it.account.includeInTotal }
+            NetWorth(
+                accountAssets = inTotal.filter { it.balance > 0 }.sumOf { it.balance },
+                cardDues = inTotal.filter { it.balance < 0 }.sumOf { -it.balance },
+                lent = loans.filter { it.loan.status == LoanStatus.OPEN && it.loan.direction == LoanDirection.LENT }.sumOf { it.outstanding },
+                borrowed = loans.filter { it.loan.status == LoanStatus.OPEN && it.loan.direction == LoanDirection.BORROWED }.sumOf { it.outstanding },
+                emiOutstanding = emis.filter { !it.isClosed }.sumOf { it.principalOutstanding },
+            )
+        }
+
+    fun observePayees() = txnDao.observePayees()
+
     // ---------------------------------------------------------------- Sync
 
     fun observePendingSync() = outboxDao.observeCount()
@@ -457,5 +632,6 @@ class FinanceRepository(
         loanDao.allPeople().forEach { queue(SyncEntity.PERSON, it.uuid) }
         loanDao.allLoans().forEach { queue(SyncEntity.LOAN, it.uuid) }
         loanDao.allEntries().forEach { queue(SyncEntity.LOAN_ENTRY, it.uuid) }
+        recurringDao.all().forEach { queue(SyncEntity.RECURRING, it.uuid) }
     }
 }

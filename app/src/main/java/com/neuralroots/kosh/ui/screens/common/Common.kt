@@ -47,10 +47,11 @@ fun MonthSwitcher(
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
+            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         if (allowAllTime) {
             TextButton(onClick = { onChange(if (month == null) Dates.currentMonth() else null) }) {
-                Text(if (month == null) "This month" else "All time")
+                Text(if (month == null) "This month" else "All time", maxLines = 1, softWrap = false)
             }
         }
         IconButton(
@@ -89,10 +90,12 @@ fun DayHeader(day: Long, net: Long, modifier: Modifier = Modifier) {
         Text(
             Dates.dayHeader(day), style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
         if (net != 0L) Text(
             com.neuralroots.kosh.util.Money.formatSigned(net),
             style = MaterialTheme.typography.labelLarge,
+            maxLines = 1, softWrap = false,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

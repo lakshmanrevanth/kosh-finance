@@ -1,5 +1,9 @@
 package com.neuralroots.kosh.ui.screens.accounts
 
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.widthIn
+import com.neuralroots.kosh.ui.theme.HeroText
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +38,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -128,23 +133,23 @@ fun AccountsScreen(nav: NavController) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
                         .background(Brush.linearGradient(listOf(c.heroStart, c.heroEnd))).padding(20.dp),
                 ) {
-                    Text("Net worth", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelLarge)
-                    Text(Money.format(net), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                    Text("${active.size} active accounts", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+                    Text("NET WORTH", color = HeroText.copy(alpha = 0.65f), style = com.neuralroots.kosh.ui.theme.MonoLabel, maxLines = 1)
+                    Spacer(Modifier.height(6.dp))
+                    com.neuralroots.kosh.ui.components.FitText(Money.format(net), color = HeroText, style = com.neuralroots.kosh.ui.theme.AmountStyle, modifier = Modifier.fillMaxWidth())
+                    Text("${active.size} active accounts", color = HeroText.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
             }
             if (all != null && active.isEmpty()) item {
-                EmptyState("🏦", "No accounts", "Add your bank accounts, cash, cards and wallets.", action = "Add account") {
-                    nav.navigate(Routes.accountEdit())
-                }
+                EmptyState("🏦", "No accounts", "Add your bank accounts, cash, cards and wallets with the + button.")
             }
             AccountType.entries.forEach { type ->
                 val group = active.filter { it.account.type == type }
                 if (group.isNotEmpty()) {
                     item(key = "h-$type") {
                         Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp)) {
-                            Text(type.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                            Text(Money.format(group.sumOf { it.balance }), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(type.label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.width(8.dp))
+                            com.neuralroots.kosh.ui.components.FitText(Money.format(group.sumOf { it.balance }), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.widthIn(max = 150.dp))
                         }
                     }
                     items(group, key = { it.account.id }) { a ->
@@ -158,7 +163,7 @@ fun AccountsScreen(nav: NavController) {
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { showArchived = !showArchived }.padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Archived (${archived.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        Text("Archived (${archived.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Icon(if (showArchived) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null)
                     }
                 }
@@ -179,17 +184,18 @@ private fun AccountRow(a: AccountWithBalance, isDefault: Boolean, onClick: () ->
             IconBubble(accountTypeIcon(a.account.type), color)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(a.account.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(a.account.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val sub = listOfNotNull(
                     a.account.institution.takeIf { it.isNotBlank() },
                     a.account.last4.takeIf { it.isNotBlank() }?.let { "•••• $it" },
                     "Default".takeIf { isDefault },
                     "Not in net worth".takeIf { !a.account.includeInTotal },
                 ).joinToString(" · ")
-                if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
+            Spacer(Modifier.width(8.dp))
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(max = 140.dp)) {
+                com.neuralroots.kosh.ui.components.FitText(
                     if (a.account.type == AccountType.CREDIT_CARD && neg) Money.format(-a.balance) else Money.format(a.balance),
                     style = MaterialTheme.typography.titleSmall,
                     color = if (neg) KoshTheme.colors.expense else MaterialTheme.colorScheme.onSurface,
@@ -286,13 +292,13 @@ fun AccountEditScreen(nav: NavController, id: Long?) {
             Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            OutlinedTextField(vm.name, { vm.name = it }, label = { Text("Account name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(vm.name, { vm.name = it }, label = { Text("Account name", maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Text("Type", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 AccountType.entries.forEach { t ->
                     FilterChip(
                         selected = vm.type == t, onClick = { vm.type = t },
-                        label = { Text(t.label) },
+                        label = { Text(t.label, maxLines = 1, softWrap = false) },
                         leadingIcon = { Icon(accountTypeIcon(t), null, Modifier.size(18.dp)) },
                     )
                 }
@@ -305,10 +311,10 @@ fun AccountEditScreen(nav: NavController, id: Long?) {
                 else "Balance on the day you start tracking in Kosh.",
             )
             if (vm.type != AccountType.CREDIT_CARD) SwitchRow("Balance is negative (overdrawn)", vm.negativeOpening) { vm.negativeOpening = it }
-            OutlinedTextField(vm.institution, { vm.institution = it }, label = { Text("Bank / provider (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(vm.institution, { vm.institution = it }, label = { Text("Bank / provider (optional)", maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
                 vm.last4, { s -> if (s.length <= 4 && s.all(Char::isDigit)) vm.last4 = s },
-                label = { Text("Last 4 digits (optional)") }, singleLine = true,
+                label = { Text("Last 4 digits (optional)", maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(),
             )
             Text("Colour", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -339,7 +345,8 @@ fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onChange(!checked) }.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.width(8.dp))
         Switch(checked = checked, onCheckedChange = onChange)
     }
 }
@@ -354,15 +361,18 @@ fun ColorPalette(selected: Int, onPick: (Int) -> Unit) {
                     .border(if (sel) 3.dp else 0.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                     .clickable { onPick(col) },
                 contentAlignment = Alignment.Center,
-            ) { if (sel) Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+            ) { if (sel) Icon(Icons.Filled.Check, null, tint = HeroText, modifier = Modifier.size(18.dp)) }
         }
     }
 }
 
 // =================================================================== Detail
 
-class AccountDetailViewModel(c: AppContainer, id: Long) : ViewModel() {
+class AccountDetailViewModel(private val c: AppContainer, private val id: Long) : ViewModel() {
     private val range = Dates.monthRange(Dates.currentMonth())
+    fun adjustBalance(actual: Long, onDone: () -> Unit) = viewModelScope.launch {
+        c.repo.adjustBalance(id, actual); onDone()
+    }
     val account = c.repo.observeAccount(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val rows = c.repo.observeTxns(accountId = id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val monthRows = c.repo.observeTxns(from = range.first, to = range.last, accountId = id)
@@ -376,6 +386,9 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
     val rows by vm.rows.collectAsStateWithLifecycle()
     val month by vm.monthRows.collectAsStateWithLifecycle()
     val a = acc
+    var showAdjust by remember { mutableStateOf(false) }
+    val snack = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -383,11 +396,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                 IconButton(onClick = { nav.navigate(Routes.accountEdit(id)) }) { Icon(Icons.Filled.Edit, "Edit") }
             })
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { nav.navigate(Routes.txnEdit(type = TxType.EXPENSE, accountId = id)) }) {
-                Icon(Icons.Filled.Add, "Add transaction")
-            }
-        },
+        snackbarHost = { SnackbarHost(snack) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         val list = rows.orEmpty()
@@ -410,7 +419,7 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
         }
         LazyColumn(
             Modifier.fillMaxSize().padding(pad),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
         ) {
             if (a != null) item {
                 val col = Color(a.account.color)
@@ -419,17 +428,19 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                         .background(Brush.linearGradient(listOf(col, col.copy(alpha = 0.7f)))).padding(20.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(accountTypeIcon(a.account.type), null, tint = Color.White)
+                        Icon(accountTypeIcon(a.account.type), null, tint = HeroText)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             listOfNotNull(a.account.type.label, a.account.institution.takeIf { it.isNotBlank() }, a.account.last4.takeIf { it.isNotBlank() }?.let { "•••• $it" }).joinToString(" · "),
-                            color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelLarge,
+                            color = HeroText.copy(alpha = 0.85f), style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
                         )
                     }
                     Spacer(Modifier.height(8.dp))
                     val isCardDue = a.account.type == AccountType.CREDIT_CARD && a.balance < 0
-                    Text(if (isCardDue) "Outstanding" else "Current balance", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
-                    Text(Money.format(if (isCardDue) -a.balance else a.balance), color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                    Text((if (isCardDue) "Outstanding" else "Current balance").uppercase(), color = HeroText.copy(alpha = 0.65f), style = com.neuralroots.kosh.ui.theme.MonoLabel, maxLines = 1)
+                    Spacer(Modifier.height(6.dp))
+                    com.neuralroots.kosh.ui.components.FitText(Money.format(if (isCardDue) -a.balance else a.balance), color = HeroText, style = com.neuralroots.kosh.ui.theme.AmountStyle, modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         HeroStat("In this month", Money.compact(moneyIn), Modifier.weight(1f))
@@ -438,12 +449,23 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { nav.navigate(Routes.txnEdit(type = TxType.INCOME, accountId = id)) }, Modifier.weight(1f)) {
-                        Text("Add income")
-                    }
-                    FilledTonalButton(onClick = { nav.navigate(Routes.txnEdit(type = TxType.TRANSFER, accountId = id)) }, Modifier.weight(1f)) {
-                        Icon(Icons.Filled.SwapHoriz, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Transfer")
-                    }
+                    val pad = PaddingValues(horizontal = 8.dp)
+                    androidx.compose.material3.Button(
+                        onClick = { nav.navigate(Routes.txnEdit(type = TxType.EXPENSE, accountId = id)) },
+                        Modifier.weight(1f), contentPadding = pad,
+                    ) { Text("Expense", maxLines = 1, softWrap = false) }
+                    FilledTonalButton(
+                        onClick = { nav.navigate(Routes.txnEdit(type = TxType.INCOME, accountId = id)) },
+                        Modifier.weight(1f), contentPadding = pad,
+                    ) { Text("Income", maxLines = 1, softWrap = false) }
+                    FilledTonalButton(
+                        onClick = { nav.navigate(Routes.txnEdit(type = TxType.TRANSFER, accountId = id)) },
+                        Modifier.weight(1f), contentPadding = pad,
+                    ) { Text("Transfer", maxLines = 1, softWrap = false) }
+                }
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.material3.OutlinedButton(onClick = { showAdjust = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Tune, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Update balance to match bank", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (rows != null && list.isEmpty()) item {
@@ -455,12 +477,74 @@ fun AccountDetailScreen(nav: NavController, id: Long) {
             }
         }
     }
+
+    if (showAdjust && a != null) UpdateBalanceDialog(
+        current = a.balance,
+        isCard = a.account.type == AccountType.CREDIT_CARD,
+        onDismiss = { showAdjust = false },
+        onConfirm = { actual ->
+            showAdjust = false
+            vm.adjustBalance(actual) {
+                scope.launch { snack.showSnackbar("Balance updated to ${Money.format(actual)}") }
+            }
+        },
+    )
+}
+
+/** Reconcile the app balance with the real one (moves the opening balance; reports unaffected). */
+@Composable
+private fun UpdateBalanceDialog(current: Long, isCard: Boolean, onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
+    // Credit cards are entered as "amount due" by default.
+    var negative by remember { mutableStateOf(isCard && current < 0 || (isCard && current == 0L)) }
+    var input by remember { mutableStateOf(Money.toInput(kotlin.math.abs(current))) }
+    val parsed = Money.parse(input)
+    val actual = parsed?.let { if (negative) -it else it }
+    val k = KoshTheme.colors
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Update balance", maxLines = 2) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Kosh shows ${Money.format(current)}. Enter what your bank / app shows right now.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                MoneyField(if (negative) "Amount owed / overdrawn" else "Actual balance", input, { input = it })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (isCard) "This is an amount due" else "Balance is negative",
+                        style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = negative, onCheckedChange = { negative = it })
+                }
+                if (actual != null) {
+                    val diff = actual - current
+                    Text(
+                        if (diff == 0L) "No change." else "Difference: ${Money.formatSigned(diff)}",
+                        style = MaterialTheme.typography.titleSmall, maxLines = 2,
+                        color = when { diff > 0 -> k.income; diff < 0 -> k.expense; else -> MaterialTheme.colorScheme.onSurfaceVariant },
+                    )
+                }
+                Text(
+                    "This adjusts the account's opening balance, so your spending reports aren't affected.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = { actual?.let(onConfirm) }, enabled = actual != null && actual != current) {
+                Text("Update")
+            }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
 private fun HeroStat(label: String, value: String, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.16f)).padding(10.dp)) {
-        Text(label, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium)
-        Text(value, color = Color.White, style = MaterialTheme.typography.titleMedium)
+    Column(modifier.clip(RoundedCornerShape(14.dp)).background(HeroText.copy(alpha = 0.16f)).padding(10.dp)) {
+        Text(label.uppercase(), color = HeroText.copy(alpha = 0.65f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.height(4.dp))
+        com.neuralroots.kosh.ui.components.FitText(value, color = HeroText, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
     }
 }

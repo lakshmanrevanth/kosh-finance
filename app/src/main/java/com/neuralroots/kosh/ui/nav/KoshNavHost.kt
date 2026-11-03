@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -97,15 +99,45 @@ fun KoshNavHost(startRoute: String?, onStartRouteConsumed: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (showBar) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                tabs.forEach { tab ->
-                    val selected = current == tab.route
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { nav.switchTab(tab.route) },
-                        icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
-                    )
+            if (showBar) androidx.compose.foundation.layout.Column {
+                com.neuralroots.kosh.ui.components.Hairline()
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    tonalElevation = androidx.compose.ui.unit.Dp(0f),
+                ) {
+                    val ember = com.neuralroots.kosh.ui.theme.KoshTheme.colors.ember
+                    tabs.forEach { tab ->
+                        val selected = current == tab.route
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { nav.switchTab(tab.route) },
+                            icon = {
+                                Box(contentAlignment = androidx.compose.ui.Alignment.TopEnd) {
+                                    Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = tab.label)
+                                    if (selected) Box(
+                                        Modifier.padding(start = androidx.compose.ui.unit.Dp(2f)).size(androidx.compose.ui.unit.Dp(5f))
+                                            .background(ember, androidx.compose.foundation.shape.CircleShape),
+                                    )
+                                }
+                            },
+                            label = {
+                                Text(
+                                    tab.label.uppercase(), maxLines = 1, softWrap = false,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        letterSpacing = androidx.compose.ui.unit.TextUnit(0.02f, androidx.compose.ui.unit.TextUnitType.Em),
+                                    ),
+                                )
+                            },
+                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                selectedIconColor = ember,
+                                selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                                indicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                    }
                 }
             }
         },
@@ -189,6 +221,13 @@ private fun KoshGraph(nav: NavHostController) {
         composable(Routes.SETTINGS) { SettingsScreen(nav) }
         composable(Routes.SHEETS_SYNC) { SheetsSyncScreen(nav) }
         composable(Routes.EXPORT) { ExportScreen(nav) }
+        composable(Routes.RECURRING) { com.neuralroots.kosh.ui.screens.recurring.RecurringScreen(nav) }
+        composable(
+            Routes.RECURRING_EDIT,
+            arguments = listOf(idArg, navArgument("fromTxn") { type = NavType.LongType; defaultValue = -1L }),
+        ) { e -> com.neuralroots.kosh.ui.screens.recurring.RecurringEditScreen(nav, e.longArg("id"), e.longArg("fromTxn")) }
+        composable(Routes.SMS_INBOX) { com.neuralroots.kosh.ui.screens.inbox.InboxScreen(nav) }
+        composable(Routes.BUDGET) { com.neuralroots.kosh.ui.screens.budget.BudgetScreen(nav) }
         composable(Routes.PROFILE) { com.neuralroots.kosh.ui.screens.auth.AccountScreen(nav) }
     }
 }

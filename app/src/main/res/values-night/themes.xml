@@ -3,6 +3,6 @@
     <style name="Theme.Kosh" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">#0C0D12</item>
+        <item name="android:windowBackground">#171412</item>
     </style>
 </resources>
